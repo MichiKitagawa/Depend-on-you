@@ -1,0 +1,33 @@
+# cursol-rules
+
+{
+"projectName": "Depend on You",
+"technologyStack": ["Node.js", "TypeScript", "Jest", "Supertest"],
+"structureRules": {
+"services": "各サービスは services/{name}/ ディレクトリ内に構成される",
+"documentation": "各サービスは [service.md](http://service.md/), [spec.md](http://spec.md/), [test.md](http://test.md/) を持つこと",
+"sharedTypes": "共通スキーマは shared/schema.ts に定義する"
+},
+"developmentFlow": {
+"step1": "main ブランチから feature ブランチを切って開発する",
+"step2": "指定された md ファイルに従って実装する",
+"step3": "機能完成後、必ず自動テスト（npm run test）を実行する",
+"step4": "テストが失敗した場合は、内容を分析し自ら修正・再テストを行うこと",
+"step5": "テストが成功したら main ブランチにマージして次の機能へ進む"
+},
+"testPolicy": {
+"unit": "[test.md](http://test.md/) の内容に従って各エンドポイント単位でのユニットテストを実装",
+"integration": "[integration-test.md](http://integration-test.md/) に従って全体の統合テストも必須",
+"command": "npm run test または scripts/test.sh"
+},
+"namingConventions": {
+"variables": "camelCase",
+"functions": "camelCase",
+"classes": "PascalCase",
+"filenames": "kebab-case.ts"
+},
+"prohibitedActions": [
+"未テストのコードを main にマージすること",
+"明示されていない API を独自判断で追加・変更すること"
+]
+}

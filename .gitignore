@@ -1,0 +1,40 @@
+# .gitignore
+
+# Node.js
+
+node_modules/
+dist/
+build/
+.env
+
+# Logs
+
+logs
+*.log
+npm-debug.log*
+
+# System files
+
+.DS_Store
+Thumbs.db
+
+# VSCode
+
+.vscode/
+
+# Jest coverage
+
+coverage/
+
+# Output artifacts
+
+- .tgz
+*.tmp
+
+# GitHub actions artifacts
+
+- .test-report.md
+
+# IDE metadata
+
+.idea/
