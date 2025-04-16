@@ -30,5 +30,17 @@ services:
       - .env
       - ./services/reader-action-service/.env
 
+  content-service:
+    build: 
+      context: .
+      dockerfile: services/content-service/Dockerfile
+    ports:
+      - "3002:3002"
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+      - ./services/content-service/.env
+
 volumes:
   postgres_data: 
