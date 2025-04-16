@@ -17,5 +17,18 @@ services:
     ports:
       - "6379:6379"
 
+  reader-action-service:
+    build: 
+      context: .
+      dockerfile: services/reader-action-service/Dockerfile
+    ports:
+      - "3003:3003"
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - .env
+      - ./services/reader-action-service/.env
+
 volumes:
   postgres_data: 
