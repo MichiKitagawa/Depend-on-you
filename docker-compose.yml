@@ -42,6 +42,19 @@ services:
       - .env
       - ./services/content-service/.env
       
+  score-service:
+    build: 
+      context: .
+      dockerfile: services/score-service/Dockerfile
+    ports:
+      - "3004:3004"
+    depends_on:
+      - postgres
+      - reader-action-service
+    env_file:
+      - .env
+      - ./services/score-service/.env
+      
   ranking-service:
     build: 
       context: .
