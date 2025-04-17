@@ -92,5 +92,17 @@ services:
       - .env
       - ./services/economy-service/.env
 
+  curation-service:
+    build: 
+      context: .
+      dockerfile: services/curation-service/Dockerfile
+    ports:
+      - "3008:3008"
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+      - ./services/curation-service/.env
+
 volumes:
   postgres_data: 
