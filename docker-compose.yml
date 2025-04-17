@@ -80,5 +80,17 @@ services:
       - .env
       - ./services/feed-service/.env
 
+  economy-service:
+    build: 
+      context: .
+      dockerfile: services/economy-service/Dockerfile
+    ports:
+      - "3010:3010"
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+      - ./services/economy-service/.env
+
 volumes:
   postgres_data: 
