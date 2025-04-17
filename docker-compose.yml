@@ -116,6 +116,18 @@ services:
     env_file:
       - .env
       - ./services/curation-service/.env
+      
+  archive-service:
+    build: 
+      context: .
+      dockerfile: services/archive-service/Dockerfile
+    ports:
+      - "3009:3009"
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+      - ./services/archive-service/.env
 
 volumes:
   postgres_data: 
