@@ -41,6 +41,18 @@ services:
     env_file:
       - .env
       - ./services/content-service/.env
+      
+  ranking-service:
+    build: 
+      context: .
+      dockerfile: services/ranking-service/Dockerfile
+    ports:
+      - "3005:3005"
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+      - ./services/ranking-service/.env
 
 volumes:
   postgres_data: 
