@@ -66,5 +66,19 @@ services:
       - .env
       - ./services/portfolio-service/.env
 
+  feed-service:
+    build: 
+      context: .
+      dockerfile: services/feed-service/Dockerfile
+    ports:
+      - "3006:3006"
+    depends_on:
+      - postgres
+      - ranking-service
+      - content-service
+    env_file:
+      - .env
+      - ./services/feed-service/.env
+
 volumes:
   postgres_data: 
