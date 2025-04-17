@@ -54,5 +54,17 @@ services:
       - .env
       - ./services/ranking-service/.env
 
+  portfolio-service:
+    build: 
+      context: .
+      dockerfile: services/portfolio-service/Dockerfile
+    ports:
+      - "3007:3007"
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+      - ./services/portfolio-service/.env
+
 volumes:
   postgres_data: 
