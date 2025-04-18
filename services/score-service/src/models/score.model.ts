@@ -1,7 +1,7 @@
 import { Model, DataTypes } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import sequelize from '../utils/database';
-import { ScoreId, ContentId } from '../../../../shared/schema';
+import { ContentId, ScoreId } from '../schema';
 
 // スコア詳細の型定義
 interface ScoreDetail {

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import scoreService from '../services/score.service';
-import { ContentId } from '../../../../shared/schema';
+import { ContentId } from '../schema';
 
 /**
  * スコアを再計算するコントローラー
