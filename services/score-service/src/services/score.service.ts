@@ -1,4 +1,4 @@
-import { ScoreModel } from '../models/score.model';
+import Score, { ScoreAttributes } from '../models/score.model';
 import { ContentId } from '../schema';
 
 export class ScoreService {
@@ -6,7 +6,7 @@ export class ScoreService {
    * 作品のスコアを再計算して更新
    * 実際の実装では、reader-action-serviceからデータを取得して計算
    */
-  async recalculateScore(contentId: ContentId): Promise<ScoreModel> {
+  async recalculateScore(contentId: ContentId): Promise<ScoreAttributes> {
     // 本来はreader-action-serviceからデータを取得して計算
     // ここではモックデータを使用
     const detail = {
@@ -25,7 +25,7 @@ export class ScoreService {
     );
     
     // 既存のスコアレコードを検索
-    const existingScore = await ScoreModel.findOne({ where: { contentId } });
+    const existingScore = await Score.findOne({ where: { contentId } });
     
     if (existingScore) {
       // 既存レコードを更新
@@ -37,7 +37,7 @@ export class ScoreService {
       return existingScore.get();
     } else {
       // 新規レコードを作成
-      const newScore = await ScoreModel.create({
+      const newScore = await Score.create({
         contentId,
         scoreValue,
         detail
@@ -49,17 +49,17 @@ export class ScoreService {
   /**
    * 特定の作品のスコアを取得
    */
-  async getScoreByContentId(contentId: ContentId): Promise<ScoreModel | null> {
-    const score = await ScoreModel.findOne({ where: { contentId } });
+  async getScoreByContentId(contentId: ContentId): Promise<ScoreAttributes | null> {
+    const score = await Score.findOne({ where: { contentId } });
     return score ? score.get() : null;
   }
 
   /**
    * 全ての作品のスコアを取得
    */
-  async getAllScores(): Promise<ScoreModel[]> {
-    const scores = await ScoreModel.findAll();
-    return scores.map(score => score.get());
+  async getAllScores(): Promise<ScoreAttributes[]> {
+    const scores = await Score.findAll();
+    return scores.map((score) => score.get());
   }
 }
 
