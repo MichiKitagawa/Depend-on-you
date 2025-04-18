@@ -2,14 +2,19 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
-
+# 依存関係をコピー
+COPY services/ranking-service/package*.json ./
 RUN npm install
 
-COPY . .
+# アプリケーションコードをコピー
+COPY services/ranking-service/src ./src
+COPY shared/schema.ts ./src/schema.ts
+COPY services/ranking-service/tsconfig.json ./
 
+# TypeScriptのコンパイル
 RUN npm run build
 
+# アプリケーションの起動
 EXPOSE 3005
 
-CMD ["node", "dist/index.js"] 
+CMD ["node", "dist/server.js"] 
