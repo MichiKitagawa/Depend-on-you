@@ -6,7 +6,11 @@ module.exports = {
     '^.+\\.ts$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
-  collectCoverage: true,
+  collectCoverageFrom: [
+    'services/**/*.ts',
+    '!**/*.d.ts',
+    '!**/node_modules/**'
+  ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov'],
   coveragePathIgnorePatterns: [
