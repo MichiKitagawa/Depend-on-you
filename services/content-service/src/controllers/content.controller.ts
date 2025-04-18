@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { ContentModel } from '../models/content.model';
-import { ContentStatus } from '../../../../shared/schema';
+import { ContentStatus } from '../schema';
 
 export class ContentController {
   private contentModel: ContentModel;

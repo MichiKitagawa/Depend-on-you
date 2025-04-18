@@ -1,4 +1,4 @@
-import { ContentId, EpisodeId } from '../../../../shared/schema';
+import { ContentId, EpisodeId } from '../schema';
 import { v4 as uuidv4 } from 'uuid';
 import { Database } from '../db/database';
 

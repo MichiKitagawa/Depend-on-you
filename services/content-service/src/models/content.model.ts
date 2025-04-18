@@ -1,4 +1,4 @@
-import { ContentId, UserId, ContentStatus } from '../../../../shared/schema';
+import { ContentId, UserId, ContentStatus } from '../schema';
 import { v4 as uuidv4 } from 'uuid';
 import { Database } from '../db/database';
 
