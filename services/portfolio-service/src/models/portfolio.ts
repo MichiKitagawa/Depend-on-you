@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { UserId, ContentId, ActionType } from '../../../../shared/schema';
+import { UserId, ContentId, ActionType } from '../schema';
 
 export interface PortfolioEntry {
   actionType: ActionType;

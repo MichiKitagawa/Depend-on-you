@@ -1,4 +1,4 @@
-import { UserId } from '../../../../shared/schema';
+import { UserId } from '../schema';
 import { PortfolioModel, PortfolioEntry, Portfolio } from '../models/portfolio';
 import pool from '../models/db';
 
