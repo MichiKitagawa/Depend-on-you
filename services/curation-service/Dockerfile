@@ -2,21 +2,18 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
+# 依存関係をコピー
 COPY services/curation-service/package*.json ./
-
-# Install dependencies
 RUN npm install
 
-# Copy source code
-COPY services/curation-service /app/
-COPY shared /app/shared/
+# アプリケーションコードをコピー
+COPY services/curation-service/src ./src
+COPY shared/schema.ts ./src/schema.ts
+COPY services/curation-service/tsconfig.json ./
 
-# Build the application
+# TypeScriptのコンパイル
 RUN npm run build
 
-# Expose the port
+# アプリケーションの起動
 EXPOSE 3008
-
-# Start the service
-CMD ["node", "dist/index.js"] 
+CMD ["npm", "start"] 
