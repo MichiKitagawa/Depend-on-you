@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import RevenueService from '../services/RevenueService';
-import { RevenueType } from '../../../../shared/schema';
+import { RevenueType } from '../schema';
 
 class RevenueController {
   /**

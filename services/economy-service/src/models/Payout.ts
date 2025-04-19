@@ -1,6 +1,6 @@
 import { Model, DataTypes, Sequelize } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
-import { PayoutReason, UserId, ContentId } from '../../../../shared/schema';
+import { PayoutReason, UserId, ContentId } from '../schema';
 
 interface PayoutAttributes {
   payout_id: string;

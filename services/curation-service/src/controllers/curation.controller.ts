@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import curationService, { CreateCurationData, UpdateCurationData } from '../services/curation.service';
-import { CurationId, UserId } from '../../../../shared/schema';
+import { CurationId, UserId } from '../schema';
 
 // Helper function to validate payload
 const validateCurationPayload = (data: any): { valid: boolean; message?: string } => {

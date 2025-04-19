@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import archiveService from '../services/archive.service';
-import { ContentId, ArchiveId } from '../../../../shared/schema';
+import { ContentId, ArchiveId } from '../schema';
 
 class ArchiveController {
   // 新しいアーカイブを作成

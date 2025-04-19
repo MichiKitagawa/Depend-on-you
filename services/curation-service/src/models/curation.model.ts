@@ -1,6 +1,6 @@
 import { Model, DataTypes } from 'sequelize';
 import sequelize from '../config/db';
-import { CurationId, UserId } from '../../../../shared/schema';
+import { CurationId, UserId } from '../schema';
 
 // Curation model interface
 export interface CurationAttributes {

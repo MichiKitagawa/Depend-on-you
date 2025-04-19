@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import PayoutService from '../services/PayoutService';
-import { PayoutReason } from '../../../../shared/schema';
+import { PayoutReason } from '../schema';
 
 class PayoutController {
   /**

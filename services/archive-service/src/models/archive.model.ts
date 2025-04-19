@@ -1,7 +1,7 @@
 import { Model, DataTypes, Optional } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import sequelize from '../utils/database';
-import { ArchiveId, ContentId } from '../../../../shared/schema';
+import { ArchiveId, ContentId } from '../schema';
 
 // アーカイブのインターフェース定義
 interface ArchiveAttributes {

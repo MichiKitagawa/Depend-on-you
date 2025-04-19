@@ -1,5 +1,5 @@
 import { Revenue } from '../models';
-import { RevenueType } from '../../../../shared/schema';
+import { RevenueType } from '../schema';
 
 export interface RevenueInput {
   revenueType: RevenueType;

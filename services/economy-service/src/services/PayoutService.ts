@@ -1,5 +1,5 @@
 import { Payout } from '../models';
-import { PayoutReason, UserId, ContentId } from '../../../../shared/schema';
+import { PayoutReason, UserId, ContentId } from '../schema';
 
 export interface PayoutInput {
   userId: UserId;

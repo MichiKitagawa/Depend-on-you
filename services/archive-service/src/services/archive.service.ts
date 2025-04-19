@@ -1,5 +1,5 @@
 import Archive from '../models/archive.model';
-import { ArchiveId, ContentId } from '../../../../shared/schema';
+import { ArchiveId, ContentId } from '../schema';
 
 // アーカイブサービスクラス
 class ArchiveService {

@@ -1,5 +1,5 @@
 import Curation, { CurationAttributes } from '../models/curation.model';
-import { CurationId, UserId } from '../../../../shared/schema';
+import { CurationId, UserId } from '../schema';
 
 export interface CreateCurationData {
   userId: UserId;

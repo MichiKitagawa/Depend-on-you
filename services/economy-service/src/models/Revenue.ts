@@ -1,6 +1,6 @@
 import { Model, DataTypes, Sequelize } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
-import { RevenueType } from '../../../../shared/schema';
+import { RevenueType } from '../schema';
 
 interface RevenueAttributes {
   revenue_id: string;
