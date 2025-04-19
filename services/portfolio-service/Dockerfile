@@ -1,19 +1,19 @@
-FROM node:16-alpine
+FROM node:18-alpine
 
 WORKDIR /app
 
-# 依存関係のコピーとインストール
+# 依存関係をコピー
 COPY services/portfolio-service/package*.json ./
-COPY shared/ ../shared/
-
 RUN npm install
 
-# ソースコードのコピー
-COPY services/portfolio-service/ ./
+# アプリケーションコードをコピー
+COPY services/portfolio-service/src ./src
+COPY shared/schema.ts ./src/schema.ts
+COPY services/portfolio-service/tsconfig.json ./
 
-# TypeScriptのビルド
+# TypeScriptのコンパイル
 RUN npm run build
 
-# アプリケーションの実行
+# アプリケーションの起動
 EXPOSE 3007
-CMD ["npm", "start"] 
+CMD ["node", "dist/index.js"] 
