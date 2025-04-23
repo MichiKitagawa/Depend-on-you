@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useUserStore } from '../store/userStore'
 
 const LoginPage = () => {
   const navigate = useNavigate()
+  const { login } = useUserStore()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -24,12 +26,7 @@ const LoginPage = () => {
     setLoading(true)
 
     try {
-      // API呼び出しをシミュレート
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // 実際にはここでAPIを呼び出してログイン処理を行います
-      // ここでは簡単のため、成功したと仮定してホームページに遷移
-      
+      await login(formData.email, formData.password)
       navigate('/')
     } catch (err) {
       setError('ログインに失敗しました。メールアドレスとパスワードを確認してください。')
