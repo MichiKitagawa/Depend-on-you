@@ -40,3 +40,9 @@ coverage/
 
 # IDE metadata
 .idea/
+
+# Documentation files (generated or internal)
+backend_documents/
+shared_documents/
+flontend_documents/
+コード修正計画.md

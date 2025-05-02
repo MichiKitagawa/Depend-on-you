@@ -1,0 +1,34 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma" // パスを確認・調整
+}
+
+datasource db {
+  provider = "postgresql" // データベースの種類に合わせて調整
+  url      = env("DATABASE_URL")
+}
+
+// shared/schema.ts の UserID 等を参照
+
+// ユーザーの行動サマリ (例)
+model UserActivitySummary {
+  id          String   @id @default(uuid())
+  userId      String   @unique // UserID 型
+  totalReads  Int      @default(0)
+  totalLikes  Int      @default(0)
+  totalBoosts Int      @default(0)
+  // ... その他集計したい行動指標
+  lastUpdatedAt DateTime @updatedAt
+}
+
+// 信用スコア (例)
+model CreditScore {
+  id          String   @id @default(uuid())
+  userId      String   @unique // UserID 型
+  score       Int      // スコア値
+  calculatedAt DateTime @updatedAt // 計算日時
+  // scoreFactors Json?  // スコアの根拠など (必要なら)
+
+  @@index([score])
+  @@index([calculatedAt])
+} 

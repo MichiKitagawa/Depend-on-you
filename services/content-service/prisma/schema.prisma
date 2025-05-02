@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// shared/schema.ts の UserId, MagazineID, PostID, GoodsID 等を参照
+
+model Magazine {
+  id          String   @id @default(uuid()) // MagazineID 型
+  title       String
+  description String?
+  authorId    String   // UserId 型
+  // author      User?    // 別サービスのため直接リレーションは不可か、IDのみで持つ
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  posts       Post[]
+  goods       Goods[]
+}
+
+model Post {
+  id          String   @id @default(uuid()) // PostID 型
+  magazineId  String   // MagazineID 型
+  magazine    Magazine @relation(fields: [magazineId], references: [id])
+  title       String
+  content     String   // または Json? など内容に応じて
+  published   Boolean  @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  // readerActions ReaderAction[] // 例: ReaderAction サービスとの連携 (必要ならIDで)
+}
+
+model Goods {
+  id          String   @id @default(uuid()) // GoodsID 型
+  magazineId  String   // MagazineID 型
+  magazine    Magazine @relation(fields: [magazineId], references: [id])
+  name        String
+  description String?
+  price       Int      // または Decimal? 通貨や単位も考慮
+  stock       Int?     // 在庫管理する場合
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 旧 Content, Episode モデルは削除 (もし存在していた場合)

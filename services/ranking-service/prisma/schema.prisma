@@ -1,0 +1,30 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// shared/schema.ts の PostID 等を参照
+
+model RankingEntry {
+  id           String   @id @default(uuid())
+  postId       String   // PostID 型
+  rank         Int
+  score        Float    // ランキング生成時のスコア
+  cluster      String?  // クラスタ別ランキングの場合
+  calculatedAt DateTime @default(now()) // ランキング計算日時
+
+  @@unique([cluster(sort: Desc), rank]) // クラスタ内でのランクの一意性
+  @@index([postId])
+  @@index([calculatedAt])
+}

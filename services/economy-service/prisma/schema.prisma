@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// shared/schema.ts の UserId, Wallet, Purchase, Subscription, Withdrawal 等を参照
+
+model Wallet {
+  id            String   @id @default(uuid())
+  userId        String   @unique // UserId 型
+  balance       Int      @default(0) // ポイント残高 (整数と仮定)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  purchases     Purchase[]
+  withdrawals   Withdrawal[]
+  // subscriptions Subscription[] // Subscription を Wallet に紐付ける場合
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model Purchase {
+  id            String         @id @default(uuid())
+  userId        String         // UserId 型
+  walletId      String
+  wallet        Wallet         @relation(fields: [walletId], references: [id])
+  amount        Int            // 購入ポイント数
+  currency      String         // 決済通貨 (例: "JPY", "USD")
+  price         Int            // 決済金額
+  status        PurchaseStatus @default(PENDING)
+  provider      String?        // 決済プロバイダ (例: "Stripe")
+  providerTxId  String?        // プロバイダの取引ID
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+// Subscription モデル (実装する場合)
+// enum SubscriptionStatus { ACTIVE, CANCELED, PAST_DUE }
+// model Subscription {
+//   id            String             @id @default(uuid())
+//   userId        String             // UserId 型
+//   planId        String             // 課金プランID
+//   status        SubscriptionStatus
+//   // walletId      String?            // Wallet に紐付ける場合
+//   // wallet        Wallet?            @relation(fields: [walletId], references: [id])
+//   provider      String?            // 例: "Stripe"
+//   providerSubId String?            // プロバイダのサブスクリプションID
+//   startedAt     DateTime
+//   expiresAt     DateTime?
+//   canceledAt    DateTime?
+//   createdAt     DateTime           @default(now())
+//   updatedAt     DateTime           @updatedAt
+// }
+
+enum WithdrawalStatus {
+  REQUESTED
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+model Withdrawal {
+  id             String           @id @default(uuid())
+  userId         String           // UserId 型
+  walletId       String
+  wallet         Wallet           @relation(fields: [walletId], references: [id])
+  amount         Int              // 出金ポイント数
+  status         WithdrawalStatus @default(REQUESTED)
+  requestedAt    DateTime         @default(now())
+  processedAt    DateTime?
+  // 振込先情報など
+  // bankName       String?
+  // branchName     String?
+  // accountType    String? // 普通, 当座など
+  // accountNumber  String?
+  // accountHolder  String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}

@@ -1,0 +1,42 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ArchiveStatus {
+  ARCHIVED // シンプルにアーカイブ済みかどうかのステータス
+  // DELETED // 必要であれば削除済みステータスなども
+}
+
+model ArchivedMagazine {
+  id             String        @id // 元の MagazineID を使うか、新規IDかは要検討
+  originalData   Json          // 元のマガジンデータをJSONで保存
+  status         ArchiveStatus @default(ARCHIVED)
+  archivedAt     DateTime      @default(now())
+  lastFeaturedAt DateTime?     // 再特集された日時など (必要なら)
+
+  @@index([status])
+  @@index([archivedAt])
+}
+
+model ArchivedPost {
+  id             String        @id // 元の PostID を使うか、新規IDかは要検討
+  originalData   Json          // 元の投稿データをJSONで保存
+  status         ArchiveStatus @default(ARCHIVED)
+  archivedAt     DateTime      @default(now())
+  lastFeaturedAt DateTime?     // 再特集された日時など (必要なら)
+
+  @@index([status])
+  @@index([archivedAt])
+}

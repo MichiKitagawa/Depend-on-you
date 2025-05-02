@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// shared/schema.ts の UserId, PostID 等を参照
+
+enum ActionType {
+  READ
+  LIKE
+  BOOST
+  COMMENT
+  // SHARE // 必要であれば追加
+}
+
+model ActionLog {
+  id        String     @id @default(uuid())
+  userId    String     // UserId 型
+  postId    String     // PostID 型 (または対象コンテンツのID)
+  action    ActionType
+  createdAt DateTime   @default(now())
+
+  // Boost や Comment の場合、追加情報が必要か？ (例: commentId)
+  // commentId String?
+
+  @@index([userId])
+  @@index([postId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// Comment モデル (必要に応じて定義)
+// model Comment {
+//   id        String   @id @default(uuid())
+//   userId    String
+//   postId    String
+//   content   String
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+//   actionLog ActionLog? @relation(fields: [id], references: [commentId]) // ActionLog と連携する場合
+// }

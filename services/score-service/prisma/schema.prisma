@@ -1,0 +1,29 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// shared/schema.ts の PostID 等を参照
+
+model PostScore {
+  id          String   @id @default(uuid())
+  postId      String   @unique // PostID 型
+  score       Float    // スコア値 (Float or Decimal)
+  calculatedAt DateTime @updatedAt // スコア計算日時
+
+  @@index([score])
+  @@index([calculatedAt])
+}
+
+// 他に必要なフィールドがあれば追加 (例: スコアの算出元となったアクション数など)
