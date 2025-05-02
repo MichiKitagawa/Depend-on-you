@@ -21,7 +21,7 @@ model User {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   profile             UserProfile?
-  notificationPreferences Json? // spec.md に合わせて調整が必要 (仮でJson型)
+  notificationPreferences NotificationPreferences?
   followings          Follow[] @relation("Following")
   followers           Follow[] @relation("Follower")
 }
@@ -34,6 +34,16 @@ model UserProfile {
   bio         String?
   avatarUrl   String?
   // ... spec.md に基づく他の profile フィールド
+}
+
+model NotificationPreferences {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  email     Boolean  @default(true)
+  push      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Follow {
