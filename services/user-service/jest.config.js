@@ -6,6 +6,11 @@ module.exports = {
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
+  globals: {
+    'ts-jest': {
+      tsconfig: 'tsconfig.json'
+    }
+  },
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
   collectCoverage: true,
   coverageDirectory: 'coverage',

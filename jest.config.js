@@ -26,5 +26,10 @@ module.exports = {
   ],
   testTimeout: 10000,
   forceExit: true,
-  verbose: true
+  verbose: true,
+  globals: {
+    'ts-jest': {
+      tsconfig: 'tsconfig.json'
+    }
+  }
 }; 
