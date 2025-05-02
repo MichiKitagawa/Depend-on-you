@@ -10,9 +10,11 @@
     "resolveJsonModule": true,
     "baseUrl": "./",
     "paths": {
+      "@src/*": ["src/*"],
+      "@generated/*": ["generated/*"],
       "shared/*": ["../../shared/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "generated/**/*"],
   "exclude": ["node_modules", "tests"]
 } 
