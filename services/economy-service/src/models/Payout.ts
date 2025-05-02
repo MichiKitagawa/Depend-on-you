@@ -1,6 +1,10 @@
 import { Model, DataTypes, Sequelize } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
-import { PayoutReason, UserId, ContentId } from '../schema';
+import { UserId } from '../schema';
+
+// 直接定義
+export type PayoutReason = 'rankingReward' | 'contribution';
+export type ContentId = string;
 
 interface PayoutAttributes {
   payout_id: string;

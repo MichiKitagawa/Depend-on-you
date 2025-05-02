@@ -14,6 +14,13 @@ const PORT = process.env.PORT || 3010;
 // ミドルウェア
 app.use(cors());
 app.use(helmet());
+
+// Stripe Webhook エンドポイント（/api/purchases/webhook）は raw body を必要とするため、
+// express.json() の前に配置し、このルートのみ express.raw() を使用する
+// 他のルートのために express.json() は後で適用する
+app.use('/api/purchases/webhook', express.raw({ type: 'application/json' }));
+
+// 通常の JSON ボディパーサー (Webhook ルートの後)
 app.use(express.json());
 
 // データベース接続確認

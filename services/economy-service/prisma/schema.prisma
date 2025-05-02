@@ -6,7 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  output   = "../../../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -24,6 +24,7 @@ model Wallet {
   updatedAt     DateTime @updatedAt
   purchases     Purchase[]
   withdrawals   Withdrawal[]
+  pointHistories PointHistory[]
   // subscriptions Subscription[] // Subscription を Wallet に紐付ける場合
 }
 
@@ -91,4 +92,25 @@ model Withdrawal {
   // accountHolder  String?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
+}
+
+enum PointHistoryType {
+  CREDIT // 付与
+  DEBIT  // 消費
+}
+
+model PointHistory {
+  id        String           @id @default(uuid())
+  userId    String           // UserId 型
+  walletId  String
+  wallet    Wallet           @relation(fields: [walletId], references: [id])
+  amount    Int              // 変更量 (CREDIT は +, DEBIT は -)
+  type      PointHistoryType
+  reason    String           // 変更理由 (例: "Purchase completion: <purchaseId>", "Withdrawal request: <withdrawalId>", "Boost: <postId>")
+  relatedId String?          // 関連するエンティティID (Purchase ID, Withdrawal ID, Post ID など)
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([walletId])
+  @@index([createdAt])
 }

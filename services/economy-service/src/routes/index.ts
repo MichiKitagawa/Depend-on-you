@@ -1,11 +1,13 @@
 import { Router } from 'express';
-import revenueRoutes from './revenueRoutes';
-import payoutRoutes from './payoutRoutes';
+import walletRoutes from './walletRoutes';
+import purchaseRoutes from './purchaseRoutes';
+import withdrawalRoutes from './withdrawalRoutes';
 
 const router = Router();
 
 // 各ルートをマウント
-router.use('/economy', revenueRoutes);
-router.use('/economy', payoutRoutes);
+router.use('/wallet', walletRoutes);
+router.use('/purchases', purchaseRoutes);
+router.use('/withdrawals', withdrawalRoutes);
 
 export default router; 

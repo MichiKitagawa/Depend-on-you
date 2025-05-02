@@ -1,6 +1,9 @@
 import { Model, DataTypes, Sequelize } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
-import { RevenueType } from '../schema';
+// import { RevenueType } from '../schema'; // 削除
+
+// 直接定義
+export type RevenueType = 'ad' | 'subscription' | 'goods';
 
 interface RevenueAttributes {
   revenue_id: string;
