@@ -41,23 +41,14 @@ export class PortfolioController {
   syncUserActions = async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = req.params.userId;
-      
+
       if (!userId) {
         res.status(400).json({ error: 'ユーザーIDが必要です' });
         return;
       }
 
-      // リクエストボディからエントリーを取得するか、実際の実装では
-      // reader-action-serviceから直接データを取得
-      const entries = req.body.entries as PortfolioEntry[];
-      
-      if (!entries || !Array.isArray(entries)) {
-        res.status(400).json({ error: '有効なエントリー配列が必要です' });
-        return;
-      }
+      const syncedCount = await this.portfolioService.syncUserActions(userId);
 
-      const syncedCount = await this.portfolioService.syncUserActions(userId, entries);
-      
       res.status(200).json({
         userId,
         syncedCount

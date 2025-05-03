@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import curationService, { CreateCurationData, UpdateCurationData } from '../services/curation.service';
-import { CurationId, UserId } from '../schema';
+import { UserId } from '../schema';
 
 // Helper function to validate payload
 const validateCurationPayload = (data: any): { valid: boolean; message?: string } => {
@@ -36,7 +36,7 @@ class CurationController {
   // Get a curation by ID
   async getCurationById(req: Request, res: Response): Promise<void> {
     try {
-      const curationId = req.params.curationId as CurationId;
+      const curationId = req.params.curationId as string;
       const curation = await curationService.getCurationById(curationId);
       
       if (!curation) {
@@ -54,7 +54,7 @@ class CurationController {
   // Update a curation
   async updateCuration(req: Request, res: Response): Promise<void> {
     try {
-      const curationId = req.params.curationId as CurationId;
+      const curationId = req.params.curationId as string;
       const userId = req.body.userId as UserId;
       const updateData = req.body as UpdateCurationData;
       
@@ -84,7 +84,7 @@ class CurationController {
   // Delete a curation
   async deleteCuration(req: Request, res: Response): Promise<void> {
     try {
-      const curationId = req.params.curationId as CurationId;
+      const curationId = req.params.curationId as string;
       const userId = req.body.userId as UserId;
       
       if (!userId) {

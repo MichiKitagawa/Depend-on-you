@@ -68,22 +68,12 @@ describe('Portfolio API', () => {
 
   describe('POST /portfolios/:userId/sync', () => {
     test('正常: ユーザーのポートフォリオを同期できる', async () => {
-      // エントリーデータ
-      const entries = [
-        {
-          actionType: 'boost',
-          contentId: 'content123',
-          timestamp: '2025-04-13T00:00:00Z',
-        },
-      ];
-
       // PortfolioServiceのsyncUserActionsメソッドをモック
       (PortfolioService.prototype.syncUserActions as jest.Mock).mockResolvedValue(1);
 
       // APIリクエスト
       const response = await request(app)
-        .post('/portfolios/user123/sync')
-        .send({ entries });
+        .post('/portfolios/user123/sync');
 
       // 検証
       expect(response.status).toBe(200);
@@ -91,26 +81,16 @@ describe('Portfolio API', () => {
         userId: 'user123',
         syncedCount: 1,
       });
-      expect(PortfolioService.prototype.syncUserActions).toHaveBeenCalledWith('user123', entries);
+      expect(PortfolioService.prototype.syncUserActions).toHaveBeenCalledWith('user123');
     });
 
-    test('異常: 存在しないユーザーの場合でも同期は実行される（新規作成扱い）', async () => {
-      // エントリーデータ
-      const entries = [
-        {
-          actionType: 'boost',
-          contentId: 'content123',
-          timestamp: '2025-04-13T00:00:00Z',
-        },
-      ];
-
+    test('異常: 存在しないユーザーの場合でも同期は実行される（サービス側でハンドルされる想定）', async () => {
       // PortfolioServiceのsyncUserActionsメソッドをモック
       (PortfolioService.prototype.syncUserActions as jest.Mock).mockResolvedValue(1);
 
       // APIリクエスト
       const response = await request(app)
-        .post('/portfolios/newuser/sync')
-        .send({ entries });
+        .post('/portfolios/newuser/sync');
 
       // 検証
       expect(response.status).toBe(200);
@@ -118,19 +98,7 @@ describe('Portfolio API', () => {
         userId: 'newuser',
         syncedCount: 1,
       });
-      expect(PortfolioService.prototype.syncUserActions).toHaveBeenCalledWith('newuser', entries);
-    });
-
-    test('異常: 無効なリクエストボディの場合は400を返す', async () => {
-      // APIリクエスト（entries未設定）
-      const response = await request(app)
-        .post('/portfolios/user123/sync')
-        .send({});
-
-      // 検証
-      expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty('error');
-      expect(PortfolioService.prototype.syncUserActions).not.toHaveBeenCalled();
+      expect(PortfolioService.prototype.syncUserActions).toHaveBeenCalledWith('newuser');
     });
   });
 }); 

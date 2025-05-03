@@ -1,65 +1,69 @@
-import Score, { ScoreAttributes } from '../models/score.model';
-import { ContentId } from '../schema';
+import { PrismaClient } from '../generated/prisma';
+import { PostID } from '../../../../shared/schema'; // 共通スキーマから PostID をインポート
+
+const prisma = new PrismaClient();
 
 export class ScoreService {
   /**
-   * 作品のスコアを再計算して更新
-   * 実際の実装では、reader-action-serviceからデータを取得して計算
+   * 投稿のスコアを再計算して更新
+   * 実際の実装では、reader-action-serviceからアクションデータを取得して計算
    */
-  async recalculateScore(contentId: ContentId): Promise<ScoreAttributes> {
+  async recalculateScore(postId: PostID): Promise<any> { // 戻り値の型を Prisma の PostScore に合わせる必要あり (一旦 any)
     // 本来はreader-action-serviceからデータを取得して計算
-    // ここではモックデータを使用
-    const detail = {
-      reReadRate: Math.random() * 0.3,        // 0-30%
-      saveRate: Math.random() * 0.2,          // 0-20%
-      commentDensity: Math.random() * 0.1,    // 0-10%
-      userScoreFactor: 1 + Math.random() * 0.5 // 1.0-1.5
+    // ここでは新アクションタイプのモックデータを仮定
+    const actions = {
+      readCount: Math.floor(Math.random() * 1000),    // 0-999
+      likeCount: Math.floor(Math.random() * 500),     // 0-499
+      boostCount: Math.floor(Math.random() * 100),    // 0-99
+      commentCount: Math.floor(Math.random() * 200),  // 0-199
+      shareCount: Math.floor(Math.random() * 50)      // 0-49 (仮)
     };
-    
-    // 総合スコアを計算（0-100）
-    const scoreValue = Math.round(
-      (detail.reReadRate * 150 + 
-      detail.saveRate * 200 + 
-      detail.commentDensity * 250) * 
-      detail.userScoreFactor
-    );
-    
-    // 既存のスコアレコードを検索
-    const existingScore = await Score.findOne({ where: { contentId } });
-    
-    if (existingScore) {
-      // 既存レコードを更新
-      await existingScore.update({
-        scoreValue,
-        detail,
-        updatedAt: new Date()
-      });
-      return existingScore.get();
-    } else {
-      // 新規レコードを作成
-      const newScore = await Score.create({
-        contentId,
-        scoreValue,
-        detail
-      });
-      return newScore.get();
-    }
+
+    // 新しいスコア計算ロジック（仮）
+    const scoreValue =
+      actions.readCount * 1 +
+      actions.likeCount * 3 +
+      actions.boostCount * 10 +
+      actions.commentCount * 5 +
+      actions.shareCount * 2;
+
+    // 既存のスコアレコードを検索して更新、または新規作成 (upsert)
+    const postScore = await prisma.postScore.upsert({
+      where: { postId: postId },
+      update: {
+        score: scoreValue,
+        // calculatedAt は Prisma が自動更新 ( @updatedAt )
+        // 必要であればアクション数を保存するフィールドを追加
+      },
+      create: {
+        postId: postId,
+        score: scoreValue,
+      },
+    });
+
+    return postScore;
   }
 
   /**
-   * 特定の作品のスコアを取得
+   * 特定の投稿のスコアを取得
    */
-  async getScoreByContentId(contentId: ContentId): Promise<ScoreAttributes | null> {
-    const score = await Score.findOne({ where: { contentId } });
-    return score ? score.get() : null;
+  async getScoreByPostId(postId: PostID): Promise<any | null> { // 戻り値の型を Prisma の PostScore に合わせる必要あり
+    const postScore = await prisma.postScore.findUnique({
+      where: { postId: postId },
+    });
+    return postScore;
   }
 
   /**
-   * 全ての作品のスコアを取得
+   * 全ての投稿のスコアを取得
    */
-  async getAllScores(): Promise<ScoreAttributes[]> {
-    const scores = await Score.findAll();
-    return scores.map((score) => score.get());
+  async getAllScores(): Promise<any[]> { // 戻り値の型を Prisma の PostScore に合わせる必要あり
+    const postScores = await prisma.postScore.findMany({
+        orderBy: {
+            score: 'desc' // 例: スコアの高い順
+        }
+    });
+    return postScores;
   }
 }
 

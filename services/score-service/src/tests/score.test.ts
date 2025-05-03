@@ -3,6 +3,7 @@ import express from 'express';
 import scoreRoutes from '../routes/score.routes';
 import scoreService from '../services/score.service';
 import { v4 as uuidv4 } from 'uuid';
+import { PostID } from '../../../../shared/schema';
 
 // モックの設定
 jest.mock('../services/score.service');
@@ -20,41 +21,36 @@ describe('スコアサービス API テスト', () => {
   });
 
   describe('POST /scores/recalculate', () => {
-    it('有効なcontentIdでスコアが再計算される', async () => {
-      // モックデータ
-      const contentId = uuidv4();
-      const mockScore = {
-        scoreId: uuidv4(),
-        contentId,
-        scoreValue: 75,
-        detail: {
-          reReadRate: 0.15,
-          saveRate: 0.10,
-          commentDensity: 0.05,
-          userScoreFactor: 1.2
-        },
-        updatedAt: new Date()
+    it('有効なpostIdでスコアが再計算される', async () => {
+      // モックデータ (Prisma PostScore 形式)
+      const postId: PostID = uuidv4();
+      const mockPostScore = {
+        id: uuidv4(),
+        postId: postId,
+        score: 1234, // 仮のスコア
+        calculatedAt: new Date(),
       };
 
       // モックの戻り値を設定
-      mockedScoreService.recalculateScore.mockResolvedValue(mockScore);
+      mockedScoreService.recalculateScore.mockResolvedValue(mockPostScore);
 
       // APIリクエスト
       const response = await request(app)
         .post('/scores/recalculate')
-        .send({ contentId })
+        .send({ postId })
         .set('Accept', 'application/json');
 
       // アサーション
       expect(response.status).toBe(200);
       expect(response.body).toEqual(expect.objectContaining({
-        contentId,
-        scoreValue: expect.any(Number)
+        postId: postId,
+        score: expect.any(Number)
       }));
-      expect(mockedScoreService.recalculateScore).toHaveBeenCalledWith(contentId);
+      expect(response.body).toHaveProperty('calculatedAt');
+      expect(mockedScoreService.recalculateScore).toHaveBeenCalledWith(postId);
     });
 
-    it('contentIdがない場合は400エラーを返す', async () => {
+    it('postIdがない場合は400エラーを返す', async () => {
       const response = await request(app)
         .post('/scores/recalculate')
         .send({})
@@ -62,46 +58,41 @@ describe('スコアサービス API テスト', () => {
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toContain('postId');
     });
   });
 
-  describe('GET /scores/:contentId', () => {
-    it('有効なcontentIdでスコア情報を取得できる', async () => {
-      const contentId = uuidv4();
-      const mockScore = {
-        scoreId: uuidv4(),
-        contentId,
-        scoreValue: 85,
-        detail: {
-          reReadRate: 0.20,
-          saveRate: 0.15,
-          commentDensity: 0.07,
-          userScoreFactor: 1.3
-        },
-        updatedAt: new Date()
+  describe('GET /scores/:postId', () => {
+    it('有効なpostIdでスコア情報を取得できる', async () => {
+      const postId: PostID = uuidv4();
+      const mockPostScore = {
+        id: uuidv4(),
+        postId: postId,
+        score: 5678,
+        calculatedAt: new Date(),
       };
-
-      mockedScoreService.getScoreByContentId.mockResolvedValue(mockScore);
+      mockedScoreService.getScoreByPostId.mockResolvedValue(mockPostScore);
 
       const response = await request(app)
-        .get(`/scores/${contentId}`)
+        .get(`/scores/${postId}`)
         .set('Accept', 'application/json');
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual(expect.objectContaining({
-        contentId,
-        scoreValue: expect.any(Number)
+        postId: postId,
+        score: expect.any(Number)
       }));
-      expect(mockedScoreService.getScoreByContentId).toHaveBeenCalledWith(contentId);
+      expect(response.body).toHaveProperty('calculatedAt');
+      expect(mockedScoreService.getScoreByPostId).toHaveBeenCalledWith(postId);
     });
 
-    it('存在しないcontentIdの場合は404エラーを返す', async () => {
-      const contentId = uuidv4();
+    it('存在しないpostIdの場合は404エラーを返す', async () => {
+      const postId: PostID = uuidv4();
       
-      mockedScoreService.getScoreByContentId.mockResolvedValue(null);
+      mockedScoreService.getScoreByPostId.mockResolvedValue(null);
 
       const response = await request(app)
-        .get(`/scores/${contentId}`)
+        .get(`/scores/${postId}`)
         .set('Accept', 'application/json');
 
       expect(response.status).toBe(404);
@@ -111,34 +102,22 @@ describe('スコアサービス API テスト', () => {
 
   describe('GET /scores', () => {
     it('全てのスコアリストを取得できる', async () => {
-      const mockScores = [
+      const mockPostScores = [
         {
-          scoreId: uuidv4(),
-          contentId: uuidv4(),
-          scoreValue: 75,
-          detail: {
-            reReadRate: 0.15,
-            saveRate: 0.10,
-            commentDensity: 0.05,
-            userScoreFactor: 1.2
-          },
-          updatedAt: new Date()
+          id: uuidv4(),
+          postId: uuidv4(),
+          score: 1111,
+          calculatedAt: new Date()
         },
         {
-          scoreId: uuidv4(),
-          contentId: uuidv4(),
-          scoreValue: 85,
-          detail: {
-            reReadRate: 0.20,
-            saveRate: 0.15,
-            commentDensity: 0.07,
-            userScoreFactor: 1.3
-          },
-          updatedAt: new Date()
+          id: uuidv4(),
+          postId: uuidv4(),
+          score: 2222,
+          calculatedAt: new Date()
         }
       ];
 
-      mockedScoreService.getAllScores.mockResolvedValue(mockScores);
+      mockedScoreService.getAllScores.mockResolvedValue(mockPostScores);
 
       const response = await request(app)
         .get('/scores')
@@ -147,8 +126,9 @@ describe('スコアサービス API テスト', () => {
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);
       expect(response.body).toHaveLength(2);
-      expect(response.body[0]).toHaveProperty('contentId');
-      expect(response.body[0]).toHaveProperty('scoreValue');
+      expect(response.body[0]).toHaveProperty('postId');
+      expect(response.body[0]).toHaveProperty('score');
+      expect(response.body[0]).toHaveProperty('calculatedAt');
       expect(mockedScoreService.getAllScores).toHaveBeenCalled();
     });
   });

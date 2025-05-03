@@ -4,26 +4,19 @@ import RankingService from '../services/ranking-service';
 class RankingController {
   private rankingService: RankingService;
 
-  constructor() {
-    this.rankingService = new RankingService();
+  constructor(rankingServiceInstance?: RankingService) {
+    this.rankingService = rankingServiceInstance || new RankingService();
   }
 
   /**
-   * Rebuild rankings for a specific cluster type
+   * Rebuild rankings for a specific cluster type (or overall)
    */
   public rebuildRankings = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { clusterType } = req.body;
-
-      if (!clusterType) {
-        res.status(400).json({ error: 'clusterType is required' });
-        return;
-      }
-
+      const clusterType = req.body.clusterType as string | undefined;
       const updatedCount = await this.rankingService.rebuildRankings(clusterType);
-      
       res.status(200).json({
-        clusterType,
+        message: `Rankings rebuilt successfully for cluster: ${clusterType || 'overall'}`,
         updatedCount
       });
     } catch (error) {
@@ -39,14 +32,20 @@ class RankingController {
     try {
       const clusterType = req.query.clusterType as string | undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
-
       const rankings = await this.rankingService.getRankings(clusterType, limit);
-      
+
+      if (!rankings) {
+           // サービスから undefined が返るケースも考慮 (本来はエラーか空配列が返るべき)
+           console.error('Service returned undefined rankings');
+           res.status(500).json({ error: 'Failed to fetch rankings data' });
+           return;
+      }
+
       if (rankings.length === 0) {
-        res.status(404).json({ error: 'No rankings found' });
+        res.status(200).json([]);
         return;
       }
-      
+
       res.status(200).json(rankings);
     } catch (error) {
       console.error('Error fetching rankings:', error);
@@ -55,4 +54,4 @@ class RankingController {
   };
 }
 
-export default RankingController; 
+export default RankingController;

@@ -1,12 +1,13 @@
 import { Model, DataTypes, Optional } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import sequelize from '../utils/database';
-import { ArchiveId, ContentId } from '../schema';
+// ArchiveId, ContentId を削除
+import { } from '../schema';
 
 // アーカイブのインターフェース定義
 interface ArchiveAttributes {
-  archiveId: ArchiveId;
-  contentId: ContentId; 
+  archiveId: string; // string に変更
+  contentId: string; // string に変更
   archivedAt: Date;
   lastTrigger?: Date;
 }
@@ -16,8 +17,8 @@ interface ArchiveCreationAttributes extends Optional<ArchiveAttributes, 'archive
 
 // アーカイブモデルクラス
 class Archive extends Model<ArchiveAttributes, ArchiveCreationAttributes> implements ArchiveAttributes {
-  public archiveId!: ArchiveId;
-  public contentId!: ContentId;
+  public archiveId!: string; // string に変更
+  public contentId!: string; // string に変更
   public archivedAt!: Date;
   public lastTrigger?: Date;
 
@@ -26,7 +27,8 @@ class Archive extends Model<ArchiveAttributes, ArchiveCreationAttributes> implem
   public readonly updatedAt!: Date;
 
   // モデルメソッド
-  static async findByContentId(contentId: ContentId): Promise<Archive | null> {
+  // contentId の型を string に変更
+  static async findByContentId(contentId: string): Promise<Archive | null> {
     return Archive.findOne({
       where: {
         contentId

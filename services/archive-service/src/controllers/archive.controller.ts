@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import archiveService from '../services/archive.service';
-import { ContentId, ArchiveId } from '../schema';
+// ContentId, ArchiveId を削除
+import { } from '../schema';
 
 class ArchiveController {
   // 新しいアーカイブを作成
@@ -13,7 +14,8 @@ class ArchiveController {
         return;
       }
 
-      const archive = await archiveService.createArchive(contentId as ContentId);
+      // contentId の型アサーションを string に変更
+      const archive = await archiveService.createArchive(contentId as string);
       res.status(201).json({
         archiveId: archive.archiveId,
         contentId: archive.contentId,
@@ -28,7 +30,8 @@ class ArchiveController {
   // コンテンツIDによるアーカイブの取得
   async getArchiveByContentId(req: Request, res: Response): Promise<void> {
     try {
-      const contentId = req.params.contentId as ContentId;
+      // contentId の型アサーションを string に変更
+      const contentId = req.params.contentId as string;
       const archive = await archiveService.getArchiveByContentId(contentId);
 
       if (!archive) {
@@ -51,7 +54,8 @@ class ArchiveController {
   // 再配信トリガーの発行
   async triggerRedistribution(req: Request, res: Response): Promise<void> {
     try {
-      const archiveId = req.params.archiveId as ArchiveId;
+      // archiveId の型アサーションを string に変更
+      const archiveId = req.params.archiveId as string;
       const updatedArchive = await archiveService.triggerRedistribution(archiveId);
 
       if (!updatedArchive) {

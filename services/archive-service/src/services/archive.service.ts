@@ -1,10 +1,12 @@
 import Archive from '../models/archive.model';
-import { ArchiveId, ContentId } from '../schema';
+// ArchiveId, ContentId を削除し、インポートを空にする (必要なら UserId などを追加)
+import { } from '../schema';
 
 // アーカイブサービスクラス
 class ArchiveService {
   // 新しいアーカイブを作成
-  async createArchive(contentId: ContentId): Promise<Archive> {
+  // contentId の型を string に変更 (本来は PostId or MagazineID)
+  async createArchive(contentId: string): Promise<Archive> {
     try {
       // 既存のアーカイブを確認
       const existingArchive = await Archive.findByContentId(contentId);
@@ -14,7 +16,7 @@ class ArchiveService {
 
       // 新しいアーカイブを作成
       return await Archive.create({
-        contentId,
+        contentId, // モデル定義に合わせてカラム名を確認
         archivedAt: new Date()
       });
     } catch (error) {
@@ -24,7 +26,8 @@ class ArchiveService {
   }
 
   // コンテンツIDによるアーカイブの取得
-  async getArchiveByContentId(contentId: ContentId): Promise<Archive | null> {
+  // contentId の型を string に変更
+  async getArchiveByContentId(contentId: string): Promise<Archive | null> {
     try {
       return await Archive.findByContentId(contentId);
     } catch (error) {
@@ -34,10 +37,11 @@ class ArchiveService {
   }
 
   // アーカイブIDによるアーカイブの取得
-  async getArchiveById(archiveId: ArchiveId): Promise<Archive | null> {
+  // archiveId の型を string に変更
+  async getArchiveById(archiveId: string): Promise<Archive | null> {
     try {
       return await Archive.findOne({
-        where: { archiveId }
+        where: { archiveId } // モデル定義に合わせてカラム名を確認
       });
     } catch (error) {
       console.error('アーカイブ取得エラー:', error);
@@ -46,7 +50,8 @@ class ArchiveService {
   }
 
   // 再配信トリガーの発行
-  async triggerRedistribution(archiveId: ArchiveId): Promise<Archive | null> {
+  // archiveId の型を string に変更
+  async triggerRedistribution(archiveId: string): Promise<Archive | null> {
     try {
       const archive = await this.getArchiveById(archiveId);
       if (!archive) {

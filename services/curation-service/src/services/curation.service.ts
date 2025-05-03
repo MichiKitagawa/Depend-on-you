@@ -1,5 +1,5 @@
 import Curation, { CurationAttributes } from '../models/curation.model';
-import { CurationId, UserId } from '../schema';
+import { UserId } from '../schema';
 
 export interface CreateCurationData {
   userId: UserId;
@@ -33,7 +33,7 @@ class CurationService {
   }
 
   // Get a curation by ID
-  async getCurationById(curationId: CurationId): Promise<CurationAttributes | null> {
+  async getCurationById(curationId: string): Promise<CurationAttributes | null> {
     try {
       const curation = await Curation.findByPk(curationId);
       return curation ? (curation.get({ plain: true }) as CurationAttributes) : null;
@@ -45,7 +45,7 @@ class CurationService {
 
   // Update a curation
   async updateCuration(
-    curationId: CurationId,
+    curationId: string,
     userId: UserId,
     data: UpdateCurationData
   ): Promise<CurationAttributes | null> {
@@ -77,7 +77,7 @@ class CurationService {
   }
 
   // Delete a curation
-  async deleteCuration(curationId: CurationId, userId: UserId): Promise<boolean> {
+  async deleteCuration(curationId: string, userId: UserId): Promise<boolean> {
     try {
       const deleted = await Curation.destroy({
         where: {

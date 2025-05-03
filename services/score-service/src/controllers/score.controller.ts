@@ -1,20 +1,20 @@
 import { Request, Response } from 'express';
 import scoreService from '../services/score.service';
-import { ContentId } from '../schema';
+import { PostID } from '../../../../shared/schema';
 
 /**
  * スコアを再計算するコントローラー
  */
 export const recalculateScore = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { contentId } = req.body as { contentId: ContentId };
+    const { postId } = req.body as { postId: PostID };
     
-    if (!contentId) {
-      res.status(400).json({ error: 'contentIdは必須です' });
+    if (!postId) {
+      res.status(400).json({ error: 'postIdは必須です' });
       return;
     }
     
-    const score = await scoreService.recalculateScore(contentId);
+    const score = await scoreService.recalculateScore(postId);
     res.status(200).json(score);
   } catch (error) {
     console.error('スコア再計算エラー:', error);
@@ -23,16 +23,16 @@ export const recalculateScore = async (req: Request, res: Response): Promise<voi
 };
 
 /**
- * 特定の作品のスコアを取得するコントローラー
+ * 特定の投稿のスコアを取得するコントローラー
  */
-export const getScoreByContentId = async (req: Request, res: Response): Promise<void> => {
+export const getScoreByPostId = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { contentId } = req.params as { contentId: ContentId };
+    const { postId } = req.params as { postId: PostID };
     
-    const score = await scoreService.getScoreByContentId(contentId);
+    const score = await scoreService.getScoreByPostId(postId);
     
     if (!score) {
-      res.status(404).json({ error: '指定されたコンテンツのスコアが見つかりません' });
+      res.status(404).json({ error: '指定された投稿のスコアが見つかりません' });
       return;
     }
     
@@ -44,7 +44,7 @@ export const getScoreByContentId = async (req: Request, res: Response): Promise<
 };
 
 /**
- * 全ての作品のスコアリストを取得するコントローラー
+ * 全ての投稿のスコアリストを取得するコントローラー
  */
 export const getAllScores = async (_req: Request, res: Response): Promise<void> => {
   try {
