@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { ReaderActionService } from '../services/reader-action.service';
-import { ActionType } from '../models/reader-action.model';
+import { ActionRecord, ReaderActionType } from '@shared/schema';
+import type { ActionType } from '../generated/prisma';
 
 export class ReaderActionController {
   private readerActionService: ReaderActionService;
@@ -16,30 +17,49 @@ export class ReaderActionController {
    */
   createAction = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { userId, contentId, actionType, payload } = req.body;
+      const actionRecord = req.body as Partial<ActionRecord>;
+      const { userId, targetType, targetId, actionType } = actionRecord;
 
-      // 必須パラメータの検証
-      if (!userId || !contentId || !actionType) {
-        res.status(400).json({ error: '必須パラメータが不足しています' });
+      if (!userId || !targetType || !targetId || !actionType) {
+        res.status(400).json({ error: '必須パラメータ (userId, targetType, targetId, actionType) が不足しています' });
         return;
       }
 
-      // アクションタイプの検証
-      const validActionTypes: ActionType[] = ['boost', 'save', 'comment', 'reaction'];
+      const validActionTypes: ReaderActionType[] = ['read', 'like', 'boost', 'comment', 'share'];
       if (!validActionTypes.includes(actionType)) {
         res.status(400).json({ error: '無効なアクションタイプです' });
         return;
       }
 
-      // アクションの作成
-      const action = await this.readerActionService.createAction({
-        userId,
-        contentId,
-        actionType,
-        payload: payload || {},
-      });
+      if (actionType === 'boost' && typeof actionRecord.amount !== 'number') {
+        res.status(400).json({ error: 'Boostアクションには amount (数値) が必要です' });
+        return;
+      }
+      if (actionType === 'comment' && typeof actionRecord.commentText !== 'string') {
+        res.status(400).json({ error: 'Commentアクションには commentText (文字列) が必要です' });
+        return;
+      }
+      if (actionType === 'share' && typeof actionRecord.platform !== 'string') {
+        res.status(400).json({ error: 'Shareアクションには platform (文字列) が必要です' });
+        return;
+      }
 
-      res.status(201).json(action);
+      if (actionType === 'like') {
+        const exists = await this.readerActionService.checkActionExists(
+          userId,
+          targetType,
+          targetId,
+          actionType
+        );
+        if (exists) {
+          res.status(409).json({ error: '既に Like されています' });
+          return;
+        }
+      }
+
+      const createdAction = await this.readerActionService.createAction(actionRecord as ActionRecord);
+
+      res.status(201).json(createdAction);
     } catch (error) {
       console.error('アクション作成エラー:', error);
       res.status(500).json({ error: 'サーバーエラーが発生しました' });
@@ -48,12 +68,12 @@ export class ReaderActionController {
 
   /**
    * ユーザーIDに基づいてアクションを取得する
-   * @param req リクエスト
+   * @param req リクエスト (userId は req.params から取得)
    * @param res レスポンス
    */
-  getActionsByUserId = async (req: Request, res: Response): Promise<void> => {
+  getActionsByUserId = async (req: Request<{ userId: string }>, res: Response): Promise<void> => {
     try {
-      const { userId } = req.query;
+      const { userId } = req.params;
 
       if (!userId || typeof userId !== 'string') {
         res.status(400).json({ error: 'ユーザーIDが必要です' });
@@ -63,29 +83,31 @@ export class ReaderActionController {
       const actions = await this.readerActionService.getActionsByUserId(userId);
       res.status(200).json(actions);
     } catch (error) {
-      console.error('アクション取得エラー:', error);
+      console.error('アクション取得エラー (ユーザーID別):', error);
       res.status(500).json({ error: 'サーバーエラーが発生しました' });
     }
   };
 
   /**
-   * コンテンツIDに基づいてアクションを取得する
-   * @param req リクエスト
+   * ターゲットに基づいてアクションを取得する
+   * @param req リクエスト (targetId は req.params, targetType は req.targetType (カスタムプロパティ))
    * @param res レスポンス
    */
-  getActionsByContentId = async (req: Request, res: Response): Promise<void> => {
+  getActionsByTarget = async (req: Request<{ targetId: string }>, res: Response): Promise<void> => {
     try {
-      const { contentId } = req.query;
+      // ルートハンドラーで設定されたカスタムプロパティを参照
+      const targetType = (req as any).targetType;
+      const { targetId } = req.params;
 
-      if (!contentId || typeof contentId !== 'string') {
-        res.status(400).json({ error: 'コンテンツIDが必要です' });
+      if (!targetType || !targetId) {
+        res.status(400).json({ error: 'ターゲットタイプとIDが必要です' });
         return;
       }
 
-      const actions = await this.readerActionService.getActionsByContentId(contentId);
+      const actions = await this.readerActionService.getActionsByTarget(targetType, targetId);
       res.status(200).json(actions);
     } catch (error) {
-      console.error('アクション取得エラー:', error);
+      console.error('アクション取得エラー (ターゲット別):', error);
       res.status(500).json({ error: 'サーバーエラーが発生しました' });
     }
   };
@@ -97,14 +119,14 @@ export class ReaderActionController {
    */
   getActionById = async (req: Request, res: Response): Promise<void> => {
     try {
-      const { actionId } = req.params;
+      const { id } = req.params;
 
-      if (!actionId) {
+      if (!id) {
         res.status(400).json({ error: 'アクションIDが必要です' });
         return;
       }
 
-      const action = await this.readerActionService.getActionById(actionId);
+      const action = await this.readerActionService.getActionById(id);
 
       if (!action) {
         res.status(404).json({ error: 'アクションが見つかりません' });
@@ -113,7 +135,7 @@ export class ReaderActionController {
 
       res.status(200).json(action);
     } catch (error) {
-      console.error('アクション取得エラー:', error);
+      console.error('アクション取得エラー (ID別):', error);
       res.status(500).json({ error: 'サーバーエラーが発生しました' });
     }
   };

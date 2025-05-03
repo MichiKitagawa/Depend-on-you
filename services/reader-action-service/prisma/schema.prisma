@@ -21,21 +21,25 @@ enum ActionType {
   LIKE
   BOOST
   COMMENT
-  // SHARE // 必要であれば追加
+  SHARE
 }
 
 model ActionLog {
-  id        String     @id @default(uuid())
-  userId    String     // UserId 型
-  postId    String     // PostID 型 (または対象コンテンツのID)
-  action    ActionType
-  createdAt DateTime   @default(now())
+  id                  String     @id @default(uuid())
+  userId              String     // UserId 型
+  targetType          String     // 追加: 'post', 'magazine', 'comment' など
+  targetId            String     // 追加: 対象のID
+  action              ActionType
+  createdAt           DateTime   @default(now())
 
-  // Boost や Comment の場合、追加情報が必要か？ (例: commentId)
-  // commentId String?
+  // 各アクション固有のフィールド (Nullable)
+  boostAmount         Int?       // Boost 用
+  commentText         String?    // Comment 用 (直接格納する場合)
+  sharePlatform       String?    // Share 用 ('x', 'facebook', etc.)
+  readDurationSeconds Int?       // Read 用
 
+  @@index([targetType, targetId])
   @@index([userId])
-  @@index([postId])
   @@index([action])
   @@index([createdAt])
 }

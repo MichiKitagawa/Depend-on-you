@@ -4,8 +4,9 @@ module.exports = {
   roots: ['<rootDir>/src'],
   testMatch: ['**/*.test.ts'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@shared/(.*)$': '<rootDir>/../../shared/$1',
+    '^@prisma/client$': '<rootDir>/src/generated/prisma',
+    // '^@/(.*)$': '<rootDir>/src/$1',
   },
-  setupFilesAfterEnv: ['<rootDir>/src/tests/setup.ts'],
   testTimeout: 20000
 }; 

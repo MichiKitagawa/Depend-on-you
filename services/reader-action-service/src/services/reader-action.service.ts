@@ -1,71 +1,110 @@
-import { ReaderAction, ReaderActionCreationAttributes } from '../models/reader-action.model';
-import { ActionType } from '../models/reader-action.model';
+import { PrismaClient, ActionLog, Prisma, ActionType } from '../generated/prisma';
+import { ActionRecord, ReaderActionType, UserId, PostID, MagazineID, CommentId } from '@shared/schema';
+
+const prisma = new PrismaClient();
 
 export class ReaderActionService {
   /**
-   * 新しいアクションを作成する
-   * @param actionData アクションデータ
-   * @returns 作成されたアクション
+   * 新しいアクションログを作成する
+   * @param actionRecord アクションデータ (shared/schema.ts の ActionRecord 型)
+   * @returns 作成されたアクションログ
    */
-  async createAction(actionData: ReaderActionCreationAttributes): Promise<ReaderAction> {
-    return await ReaderAction.create(actionData);
+  async createAction(actionRecord: ActionRecord): Promise<ActionLog> {
+    const data: Prisma.ActionLogCreateInput = {
+      userId: actionRecord.userId,
+      targetType: actionRecord.targetType,
+      targetId: actionRecord.targetId,
+      action: actionRecord.actionType.toUpperCase() as ActionType,
+      boostAmount: actionRecord.actionType === 'boost' ? actionRecord.amount : undefined,
+      commentText: actionRecord.actionType === 'comment' ? actionRecord.commentText : undefined,
+      sharePlatform: actionRecord.actionType === 'share' ? actionRecord.platform : undefined,
+      readDurationSeconds: actionRecord.actionType === 'read' ? actionRecord.readDurationSeconds : undefined,
+    };
+
+    return await prisma.actionLog.create({ data });
   }
 
   /**
-   * ユーザーIDに基づいてアクションを取得する
+   * ユーザーIDに基づいてアクションログを取得する
    * @param userId ユーザーID
-   * @returns アクションの配列
+   * @returns アクションログの配列
    */
-  async getActionsByUserId(userId: string): Promise<ReaderAction[]> {
-    return await ReaderAction.findAll({
+  async getActionsByUserId(userId: UserId): Promise<ActionLog[]> {
+    return await prisma.actionLog.findMany({
       where: { userId },
-      order: [['createdAt', 'DESC']],
+      orderBy: { createdAt: 'desc' },
     });
   }
 
   /**
-   * コンテンツIDに基づいてアクションを取得する
-   * @param contentId コンテンツID
-   * @returns アクションの配列
+   * ターゲットに基づいてアクションログを取得する
+   * @param targetType ターゲットタイプ ('post', 'magazine', 'comment')
+   * @param targetId ターゲットID
+   * @returns アクションログの配列
    */
-  async getActionsByContentId(contentId: string): Promise<ReaderAction[]> {
-    return await ReaderAction.findAll({
-      where: { contentId },
-      order: [['createdAt', 'DESC']],
+  async getActionsByTarget(targetType: string, targetId: string): Promise<ActionLog[]> {
+    return await prisma.actionLog.findMany({
+      where: { targetType, targetId },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
   /**
-   * アクションIDに基づいて特定のアクションを取得する
-   * @param actionId アクションID
-   * @returns アクションまたはnull
+   * IDに基づいて特定のアクションログを取得する
+   * @param id アクションログID
+   * @returns アクションログまたはnull
    */
-  async getActionById(actionId: string): Promise<ReaderAction | null> {
-    return await ReaderAction.findByPk(actionId);
-  }
-
-  /**
-   * アクションタイプに基づいてアクションを取得する
-   * @param actionType アクションタイプ
-   * @returns アクションの配列
-   */
-  async getActionsByType(actionType: ActionType): Promise<ReaderAction[]> {
-    return await ReaderAction.findAll({
-      where: { actionType },
-      order: [['createdAt', 'DESC']],
+  async getActionById(id: string): Promise<ActionLog | null> {
+    return await prisma.actionLog.findUnique({
+      where: { id },
     });
   }
 
   /**
-   * ユーザーIDとコンテンツIDの組み合わせに基づいてアクションを取得する
+   * アクションタイプに基づいてアクションログを取得する
+   * @param actionType アクションタイプ (shared/schema の ReaderActionType)
+   * @returns アクションログの配列
+   */
+  async getActionsByType(actionType: ReaderActionType): Promise<ActionLog[]> {
+    const prismaActionType = actionType.toUpperCase() as ActionType;
+    return await prisma.actionLog.findMany({
+      where: { action: prismaActionType },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * ユーザーとターゲットの組み合わせに基づいてアクションログを取得する
    * @param userId ユーザーID
-   * @param contentId コンテンツID
-   * @returns アクションの配列
+   * @param targetType ターゲットタイプ
+   * @param targetId ターゲットID
+   * @returns アクションログの配列
    */
-  async getActionsByUserAndContent(userId: string, contentId: string): Promise<ReaderAction[]> {
-    return await ReaderAction.findAll({
-      where: { userId, contentId },
-      order: [['createdAt', 'DESC']],
+  async getActionsByUserAndTarget(userId: UserId, targetType: string, targetId: string): Promise<ActionLog[]> {
+    return await prisma.actionLog.findMany({
+      where: { userId, targetType, targetId },
+      orderBy: { createdAt: 'desc' },
     });
+  }
+
+  /**
+   * 特定のアクションが存在するか確認する (例: Like の重複防止など)
+   * @param userId ユーザーID
+   * @param targetType ターゲットタイプ
+   * @param targetId ターゲットID
+   * @param actionType アクションタイプ (shared/schema の ReaderActionType)
+   * @returns 存在すれば true, しなければ false
+   */
+  async checkActionExists(userId: UserId, targetType: string, targetId: string, actionType: ReaderActionType): Promise<boolean> {
+    const prismaActionType = actionType.toUpperCase() as ActionType;
+    const count = await prisma.actionLog.count({
+      where: {
+        userId,
+        targetType,
+        targetId,
+        action: prismaActionType,
+      },
+    });
+    return count > 0;
   }
 } 
