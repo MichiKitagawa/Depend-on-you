@@ -922,6 +922,7 @@ export namespace Prisma {
     commentText: string | null
     sharePlatform: string | null
     readDurationSeconds: number | null
+    referrerUserId: string | null
   }
 
   export type ActionLogMaxAggregateOutputType = {
@@ -935,6 +936,7 @@ export namespace Prisma {
     commentText: string | null
     sharePlatform: string | null
     readDurationSeconds: number | null
+    referrerUserId: string | null
   }
 
   export type ActionLogCountAggregateOutputType = {
@@ -948,6 +950,7 @@ export namespace Prisma {
     commentText: number
     sharePlatform: number
     readDurationSeconds: number
+    referrerUserId: number
     _all: number
   }
 
@@ -973,6 +976,7 @@ export namespace Prisma {
     commentText?: true
     sharePlatform?: true
     readDurationSeconds?: true
+    referrerUserId?: true
   }
 
   export type ActionLogMaxAggregateInputType = {
@@ -986,6 +990,7 @@ export namespace Prisma {
     commentText?: true
     sharePlatform?: true
     readDurationSeconds?: true
+    referrerUserId?: true
   }
 
   export type ActionLogCountAggregateInputType = {
@@ -999,6 +1004,7 @@ export namespace Prisma {
     commentText?: true
     sharePlatform?: true
     readDurationSeconds?: true
+    referrerUserId?: true
     _all?: true
   }
 
@@ -1099,6 +1105,7 @@ export namespace Prisma {
     commentText: string | null
     sharePlatform: string | null
     readDurationSeconds: number | null
+    referrerUserId: string | null
     _count: ActionLogCountAggregateOutputType | null
     _avg: ActionLogAvgAggregateOutputType | null
     _sum: ActionLogSumAggregateOutputType | null
@@ -1131,6 +1138,7 @@ export namespace Prisma {
     commentText?: boolean
     sharePlatform?: boolean
     readDurationSeconds?: boolean
+    referrerUserId?: boolean
   }, ExtArgs["result"]["actionLog"]>
 
   export type ActionLogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -1144,6 +1152,7 @@ export namespace Prisma {
     commentText?: boolean
     sharePlatform?: boolean
     readDurationSeconds?: boolean
+    referrerUserId?: boolean
   }, ExtArgs["result"]["actionLog"]>
 
   export type ActionLogSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -1157,6 +1166,7 @@ export namespace Prisma {
     commentText?: boolean
     sharePlatform?: boolean
     readDurationSeconds?: boolean
+    referrerUserId?: boolean
   }, ExtArgs["result"]["actionLog"]>
 
   export type ActionLogSelectScalar = {
@@ -1170,9 +1180,10 @@ export namespace Prisma {
     commentText?: boolean
     sharePlatform?: boolean
     readDurationSeconds?: boolean
+    referrerUserId?: boolean
   }
 
-  export type ActionLogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "targetType" | "targetId" | "action" | "createdAt" | "boostAmount" | "commentText" | "sharePlatform" | "readDurationSeconds", ExtArgs["result"]["actionLog"]>
+  export type ActionLogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "targetType" | "targetId" | "action" | "createdAt" | "boostAmount" | "commentText" | "sharePlatform" | "readDurationSeconds" | "referrerUserId", ExtArgs["result"]["actionLog"]>
 
   export type $ActionLogPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "ActionLog"
@@ -1188,6 +1199,7 @@ export namespace Prisma {
       commentText: string | null
       sharePlatform: string | null
       readDurationSeconds: number | null
+      referrerUserId: string | null
     }, ExtArgs["result"]["actionLog"]>
     composites: {}
   }
@@ -1621,6 +1633,7 @@ export namespace Prisma {
     readonly commentText: FieldRef<"ActionLog", 'String'>
     readonly sharePlatform: FieldRef<"ActionLog", 'String'>
     readonly readDurationSeconds: FieldRef<"ActionLog", 'Int'>
+    readonly referrerUserId: FieldRef<"ActionLog", 'String'>
   }
     
 
@@ -2011,7 +2024,8 @@ export namespace Prisma {
     boostAmount: 'boostAmount',
     commentText: 'commentText',
     sharePlatform: 'sharePlatform',
-    readDurationSeconds: 'readDurationSeconds'
+    readDurationSeconds: 'readDurationSeconds',
+    referrerUserId: 'referrerUserId'
   };
 
   export type ActionLogScalarFieldEnum = (typeof ActionLogScalarFieldEnum)[keyof typeof ActionLogScalarFieldEnum]
@@ -2133,6 +2147,7 @@ export namespace Prisma {
     commentText?: StringNullableFilter<"ActionLog"> | string | null
     sharePlatform?: StringNullableFilter<"ActionLog"> | string | null
     readDurationSeconds?: IntNullableFilter<"ActionLog"> | number | null
+    referrerUserId?: StringNullableFilter<"ActionLog"> | string | null
   }
 
   export type ActionLogOrderByWithRelationInput = {
@@ -2146,6 +2161,7 @@ export namespace Prisma {
     commentText?: SortOrderInput | SortOrder
     sharePlatform?: SortOrderInput | SortOrder
     readDurationSeconds?: SortOrderInput | SortOrder
+    referrerUserId?: SortOrderInput | SortOrder
   }
 
   export type ActionLogWhereUniqueInput = Prisma.AtLeast<{
@@ -2162,6 +2178,7 @@ export namespace Prisma {
     commentText?: StringNullableFilter<"ActionLog"> | string | null
     sharePlatform?: StringNullableFilter<"ActionLog"> | string | null
     readDurationSeconds?: IntNullableFilter<"ActionLog"> | number | null
+    referrerUserId?: StringNullableFilter<"ActionLog"> | string | null
   }, "id">
 
   export type ActionLogOrderByWithAggregationInput = {
@@ -2175,6 +2192,7 @@ export namespace Prisma {
     commentText?: SortOrderInput | SortOrder
     sharePlatform?: SortOrderInput | SortOrder
     readDurationSeconds?: SortOrderInput | SortOrder
+    referrerUserId?: SortOrderInput | SortOrder
     _count?: ActionLogCountOrderByAggregateInput
     _avg?: ActionLogAvgOrderByAggregateInput
     _max?: ActionLogMaxOrderByAggregateInput
@@ -2196,6 +2214,7 @@ export namespace Prisma {
     commentText?: StringNullableWithAggregatesFilter<"ActionLog"> | string | null
     sharePlatform?: StringNullableWithAggregatesFilter<"ActionLog"> | string | null
     readDurationSeconds?: IntNullableWithAggregatesFilter<"ActionLog"> | number | null
+    referrerUserId?: StringNullableWithAggregatesFilter<"ActionLog"> | string | null
   }
 
   export type ActionLogCreateInput = {
@@ -2209,6 +2228,7 @@ export namespace Prisma {
     commentText?: string | null
     sharePlatform?: string | null
     readDurationSeconds?: number | null
+    referrerUserId?: string | null
   }
 
   export type ActionLogUncheckedCreateInput = {
@@ -2222,6 +2242,7 @@ export namespace Prisma {
     commentText?: string | null
     sharePlatform?: string | null
     readDurationSeconds?: number | null
+    referrerUserId?: string | null
   }
 
   export type ActionLogUpdateInput = {
@@ -2235,6 +2256,7 @@ export namespace Prisma {
     commentText?: NullableStringFieldUpdateOperationsInput | string | null
     sharePlatform?: NullableStringFieldUpdateOperationsInput | string | null
     readDurationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    referrerUserId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ActionLogUncheckedUpdateInput = {
@@ -2248,6 +2270,7 @@ export namespace Prisma {
     commentText?: NullableStringFieldUpdateOperationsInput | string | null
     sharePlatform?: NullableStringFieldUpdateOperationsInput | string | null
     readDurationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    referrerUserId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ActionLogCreateManyInput = {
@@ -2261,6 +2284,7 @@ export namespace Prisma {
     commentText?: string | null
     sharePlatform?: string | null
     readDurationSeconds?: number | null
+    referrerUserId?: string | null
   }
 
   export type ActionLogUpdateManyMutationInput = {
@@ -2274,6 +2298,7 @@ export namespace Prisma {
     commentText?: NullableStringFieldUpdateOperationsInput | string | null
     sharePlatform?: NullableStringFieldUpdateOperationsInput | string | null
     readDurationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    referrerUserId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ActionLogUncheckedUpdateManyInput = {
@@ -2287,6 +2312,7 @@ export namespace Prisma {
     commentText?: NullableStringFieldUpdateOperationsInput | string | null
     sharePlatform?: NullableStringFieldUpdateOperationsInput | string | null
     readDurationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    referrerUserId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -2364,6 +2390,7 @@ export namespace Prisma {
     commentText?: SortOrder
     sharePlatform?: SortOrder
     readDurationSeconds?: SortOrder
+    referrerUserId?: SortOrder
   }
 
   export type ActionLogAvgOrderByAggregateInput = {
@@ -2382,6 +2409,7 @@ export namespace Prisma {
     commentText?: SortOrder
     sharePlatform?: SortOrder
     readDurationSeconds?: SortOrder
+    referrerUserId?: SortOrder
   }
 
   export type ActionLogMinOrderByAggregateInput = {
@@ -2395,6 +2423,7 @@ export namespace Prisma {
     commentText?: SortOrder
     sharePlatform?: SortOrder
     readDurationSeconds?: SortOrder
+    referrerUserId?: SortOrder
   }
 
   export type ActionLogSumOrderByAggregateInput = {

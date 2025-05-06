@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { UserService } from '../services/user.service';
+import { ServiceError } from '../errors/service.error';
 import { Prisma } from '@prisma/client'; // Prisma 型をインポート
 
 // カスタムリクエスト型の定義
@@ -17,9 +18,9 @@ interface PaginationQuery {
 }
 
 // 通知設定の型定義
-interface NotificationPreferences {
-  email: boolean;
-  push: boolean;
+interface NotificationSettings {
+  subscriptionNewPost: boolean;
+  rankingChange: boolean;
 }
 
 export class UserController {
@@ -28,142 +29,185 @@ export class UserController {
   // コンストラクタで UserService のインスタンスを受け取る
   constructor(private userService: UserService) {}
 
-  async register(req: Request, res: Response) {
+  async register(req: Request, res: Response, next: NextFunction) {
     try {
-      const { username, email, password } = req.body;
-      const user = await this.userService.register(username, email, password);
-      res.status(201).json(user);
+      const { displayName, email, password } = req.body;
+      if (!displayName || !email || !password) {
+        throw new ServiceError('Missing required fields', 400);
+      }
+      const result = await this.userService.register(displayName, email, password);
+      res.status(201).json(result);
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      next(error);
     }
   }
 
-  async login(req: Request, res: Response) {
+  async login(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, password } = req.body;
-      const token = await this.userService.login(email, password);
-      res.json({ token });
+      if (!email || !password) {
+        throw new ServiceError('Missing email or password', 400);
+      }
+      const result = await this.userService.login(email, password);
+      res.status(200).json(result);
     } catch (error: any) {
-      res.status(401).json({ error: error.message });
+      next(error);
     }
   }
 
-  async getProfile(req: Request, res: Response) {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    try {
-      const profile = await this.userService.getProfile(req.user.id);
-      res.json(profile);
-    } catch (error: any) {
-      res.status(404).json({ error: error.message });
-    }
-  }
-
-  async updateProfile(req: Request, res: Response) {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    try {
-      const updatedProfile = await this.userService.updateProfile(req.user.id, req.body);
-      res.json(updatedProfile);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  }
-
-  async getNotificationPreferences(req: Request, res: Response) {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    try {
-      const prefs = await this.userService.getNotificationPreferences(req.user.id);
-      res.json(prefs || {});
-    } catch (error: any) {
-      res.status(404).json({ error: error.message });
-    }
-  }
-
-  async updateNotificationPreferences(req: Request, res: Response) {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    try {
-      const updatedPrefs = await this.userService.updateNotificationPreferences(
-        req.user.id,
-        req.body as NotificationPreferences
-      );
-      res.json(updatedPrefs);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  }
-
-  async followUser(req: Request, res: Response) {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    const targetUserId = req.params.userId;
-    if (!targetUserId) {
-      return res.status(400).json({ error: 'Target user ID is required' });
-    }
-
-    try {
-      await this.userService.followUser(req.user.id, targetUserId);
-      res.status(204).send();
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  }
-
-  async unfollowUser(req: Request, res: Response) {
-    if (!req.user?.id) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    const targetUserId = req.params.userId;
-    if (!targetUserId) {
-      return res.status(400).json({ error: 'Target user ID is required' });
-    }
-
-    try {
-      await this.userService.unfollowUser(req.user.id, targetUserId);
-      res.status(204).send();
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  }
-
-  async getFollowers(req: Request, res: Response) {
+  async getProfile(req: AuthRequest, res: Response, next: NextFunction) {
     const userId = req.params.userId;
     if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
+        return next(new ServiceError('User ID is required in path', 400));
     }
-
     try {
-      const followers = await this.userService.getFollowers(userId);
-      res.json(followers);
+      const profile = await this.userService.getProfile(userId);
+      if (!profile) {
+        throw new ServiceError('Profile not found', 404);
+      }
+      res.status(200).json(profile);
     } catch (error: any) {
-      res.status(404).json({ error: error.message });
+      next(error);
     }
   }
 
-  async getFollowing(req: Request, res: Response) {
+  async updateProfile(req: AuthRequest, res: Response, next: NextFunction) {
     const userId = req.params.userId;
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
+    if (!req.user || req.user.id !== userId) {
+      return next(new ServiceError('Unauthorized to update this profile', 403));
+    }
+    const { displayName, bio, profileImageUrl } = req.body;
+    const updates = { displayName, bio, profileImageUrl };
+
+    try {
+      if (Object.keys(updates).length === 0 || Object.values(updates).every(v => v === undefined)) {
+         throw new ServiceError('Request body cannot be empty', 400);
+      }
+      const updatedProfile = await this.userService.updateProfile(userId, updates);
+      res.status(200).json(updatedProfile);
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  async getNotificationSettings(req: AuthRequest, res: Response, next: NextFunction) {
+    const userId = req.params.userId;
+    if (!req.user || req.user.id !== userId) {
+        return next(new ServiceError('Unauthorized', 403));
+    }
+    try {
+      const settings = await this.userService.getNotificationSettings(userId);
+      res.status(200).json(settings);
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  async updateNotificationSettings(req: AuthRequest, res: Response, next: NextFunction) {
+    const userId = req.params.userId;
+    if (!req.user || req.user.id !== userId) {
+       return next(new ServiceError('Unauthorized', 403));
+    }
+    const preferences = req.body as NotificationSettings;
+    try {
+      if (typeof preferences.subscriptionNewPost !== 'boolean' || typeof preferences.rankingChange !== 'boolean') {
+        throw new ServiceError('Invalid request body format', 400);
+      }
+      const updatedSettings = await this.userService.updateNotificationSettings(userId, preferences);
+      res.status(200).json(updatedSettings);
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  async updateEmail(req: AuthRequest, res: Response, next: NextFunction) {
+      const userId = req.params.userId;
+      if (!req.user || req.user.id !== userId) {
+          return next(new ServiceError('Unauthorized', 403));
+      }
+      const { newEmail } = req.body;
+      if (!newEmail) {
+          return next(new ServiceError('newEmail is required', 400));
+      }
+      try {
+          await this.userService.updateEmail(userId, newEmail);
+          res.sendStatus(200);
+      } catch (error: any) {
+          next(error);
+      }
+  }
+
+  async updatePassword(req: AuthRequest, res: Response, next: NextFunction) {
+      const userId = req.params.userId;
+      if (!req.user || req.user.id !== userId) {
+          return next(new ServiceError('Unauthorized', 403));
+      }
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+          return next(new ServiceError('currentPassword and newPassword are required', 400));
+      }
+      try {
+          await this.userService.updatePassword(userId, currentPassword, newPassword);
+          res.sendStatus(200);
+      } catch (error: any) {
+          next(error);
+      }
+  }
+
+  async deleteAccount(req: AuthRequest, res: Response, next: NextFunction) {
+    const userId = req.params.userId;
+    if (!req.user || req.user.id !== userId) {
+      return next(new ServiceError('Unauthorized', 403));
+    }
+    try {
+      await this.userService.deleteAccount(userId);
+      res.sendStatus(204);
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  async follow(req: AuthRequest, res: Response, next: NextFunction) {
+    if (!req.user?.id) {
+      return next(new ServiceError('Authentication required', 401));
+    }
+    const followerId = req.user.id;
+    const { targetType, targetId } = req.body;
+
+    if (targetType !== 'user') {
+        return next(new ServiceError('Invalid target type', 400));
+    }
+    if (!targetId) {
+      return next(new ServiceError('targetId is required', 400));
     }
 
     try {
-      const following = await this.userService.getFollowing(userId);
-      res.json(following);
+      await this.userService.follow(followerId, targetType, targetId);
+      res.sendStatus(200);
     } catch (error: any) {
-      res.status(404).json({ error: error.message });
+      next(error);
+    }
+  }
+
+  async unfollow(req: AuthRequest, res: Response, next: NextFunction) {
+     if (!req.user?.id) {
+       return next(new ServiceError('Authentication required', 401));
+     }
+     const followerId = req.user.id;
+     const { targetType, targetId } = req.body;
+
+     if (targetType !== 'user') {
+         return next(new ServiceError('Invalid target type', 400));
+     }
+     if (!targetId) {
+       return next(new ServiceError('targetId is required', 400));
+     }
+
+    try {
+      await this.userService.unfollow(followerId, targetType, targetId);
+      res.sendStatus(200);
+    } catch (error: any) {
+      next(error);
     }
   }
 } 

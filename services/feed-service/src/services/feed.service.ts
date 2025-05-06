@@ -45,7 +45,7 @@ export class FeedService {
       return postDetailsMap;
     } catch (error) {
       console.error('Error fetching post details:', error);
-      return {}; // エラー時は空の Map を返す
+      throw error;
     }
   }
 
@@ -57,7 +57,7 @@ export class FeedService {
           return response.data?.following || [];
       } catch (error) {
           console.error(`Error fetching following list for user ${userId}:`, error);
-          return [];
+          throw error;
       }
   }
 

@@ -1,5 +1,5 @@
 // import { PrismaClient, Magazine } from '../generated/prisma';
-import { PrismaClient, Magazine } from '@generated/prisma';
+import { PrismaClient, Magazine } from '@prisma/client';
 // import { CreateMagazineDto, UpdateMagazineDto } from '@src/dtos/magazine.dto'; // DTO パスも修正
 
 export class MagazineService {
@@ -28,11 +28,14 @@ export class MagazineService {
 
   // async updateMagazine(id: string, data: UpdateMagazineDto, authorId: string): Promise<Magazine | null> {
   async updateMagazine(id: string, data: { title?: string; description?: string | null }, authorId: string): Promise<Magazine | null> {
-    // 認可チェック: マガジンの authorId と更新者の ID が一致するか確認
     const magazine = await this.prisma.magazine.findUnique({ where: { id } });
-    if (!magazine || magazine.authorId !== authorId) {
-      return null; // または権限エラーをスロー
+
+    const isAuthorized = magazine && magazine.authorId === authorId;
+
+    if (!isAuthorized) {
+      throw new Error('Forbidden: You are not authorized to update this magazine');
     }
+
     return this.prisma.magazine.update({
       where: { id },
       data: {

@@ -184,11 +184,12 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
         "fromEnvVar": "DATABASE_URL",
-        "value": "postgresql://postgres:rkrkspaspa55@localhost:5432/depend_db?schema=content-service"
+        "value": null
       }
     }
   },

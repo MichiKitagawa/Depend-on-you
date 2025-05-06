@@ -1,141 +1,140 @@
-import { PrismaClient } from '@generated/prisma';
-import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
+import { PrismaClient, Prisma, Magazine } from '@prisma/client';
 import { MagazineService } from '@src/services/magazine.service';
+
+// Manual mocks
+const mockMagazineDb = {
+  findUnique: jest.fn(),
+  findMany: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+};
+const mockPrismaClient = {
+  magazine: mockMagazineDb,
+};
+
+jest.mock('@prisma/client', () => ({
+  PrismaClient: jest.fn(() => mockPrismaClient),
+  Prisma: jest.requireActual('@prisma/client').Prisma,
+}));
 
 describe('MagazineService', () => {
   let magazineService: MagazineService;
-  let prismaMock: DeepMockProxy<PrismaClient>;
+
+  const mockMagazineId = 'mag-123';
+  const mockUserId = 'user-789';
+  const mockMagazineData: Magazine = {
+    id: mockMagazineId,
+    title: 'Test Magazine',
+    description: 'Test Description',
+    authorId: mockUserId,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   beforeEach(() => {
-    prismaMock = mockDeep<PrismaClient>();
-    magazineService = new MagazineService(prismaMock);
+    jest.clearAllMocks();
+    magazineService = new MagazineService(mockPrismaClient as unknown as PrismaClient);
+    Object.values(mockMagazineDb).forEach(mockFn => mockFn.mockReset());
   });
 
-  it('should create a magazine', async () => {
-    const magazineData = { title: 'Test Magazine', description: 'Test Desc', authorId: 'author1' };
-    const expectedMagazine = {
-      id: 'mag1',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      ...magazineData,
-      // Prisma によって追加されるフィールドもモックする
-      posts: [], 
-      goods: []
-    };
-    prismaMock.magazine.create.mockResolvedValue(expectedMagazine);
+  describe('createMagazine', () => {
+    const input = { title: 'New Mag', description: 'New Desc' };
+    const createData = { ...input, authorId: mockUserId };
 
-    const result = await magazineService.createMagazine(magazineData);
-    expect(result).toEqual(expectedMagazine);
-    expect(prismaMock.magazine.create).toHaveBeenCalledWith({ data: magazineData });
+    it('正常に Magazine を作成できる', async () => {
+      const createdMagazine = { ...mockMagazineData, id: 'new-mag-id', ...input };
+      mockMagazineDb.create.mockResolvedValue(createdMagazine);
+
+      const magazine = await magazineService.createMagazine(createData);
+
+      expect(magazine).toEqual(createdMagazine);
+      expect(mockMagazineDb.create).toHaveBeenCalledWith({ data: createData });
+    });
   });
 
-  it('should get a magazine by id', async () => {
-    const magazineId = 'mag1';
-    const expectedMagazine = {
-      id: magazineId,
-      title: 'Test Magazine',
-      description: 'Test Desc',
-      authorId: 'author1',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      posts: [],
-      goods: []
-    };
-    prismaMock.magazine.findUnique.mockResolvedValue(expectedMagazine);
-
-    const result = await magazineService.getMagazineById(magazineId);
-    expect(result).toEqual(expectedMagazine);
-    expect(prismaMock.magazine.findUnique).toHaveBeenCalledWith({ where: { id: magazineId } });
+  describe('getMagazineById', () => {
+      it('正常に Magazine を取得できる', async () => {
+        mockMagazineDb.findUnique.mockResolvedValue(mockMagazineData);
+        const magazine = await magazineService.getMagazineById(mockMagazineId);
+        expect(magazine).toEqual(mockMagazineData);
+        expect(mockMagazineDb.findUnique).toHaveBeenCalledWith({ where: { id: mockMagazineId } });
+      });
+       it('存在しない MagazineID の場合 null を返す', async () => {
+        mockMagazineDb.findUnique.mockResolvedValue(null);
+        const magazine = await magazineService.getMagazineById('non-existent');
+        expect(magazine).toBeNull();
+      });
   });
 
-  it('should update a magazine if author matches', async () => {
-      const magazineId = 'mag1';
-      const authorId = 'author1';
-      const updateData = { title: 'Updated Title' };
-      const existingMagazine = {
-          id: magazineId, title: 'Old Title', description: 'Old Desc', authorId: authorId,
-          createdAt: new Date(), updatedAt: new Date(), posts: [], goods: []
-      };
-      const updatedMagazine = { ...existingMagazine, ...updateData, updatedAt: new Date() };
+   describe('updateMagazine', () => {
+       const updateData = { title: 'Updated Title' };
 
-      prismaMock.magazine.findUnique.mockResolvedValue(existingMagazine);
-      prismaMock.magazine.update.mockResolvedValue(updatedMagazine);
+       it('正常に Magazine を更新できる (作者確認)', async () => {
+        const updatedMagazine = { ...mockMagazineData, ...updateData };
+        mockMagazineDb.findUnique.mockResolvedValue(mockMagazineData);
+        mockMagazineDb.update.mockResolvedValue(updatedMagazine);
 
-      const result = await magazineService.updateMagazine(magazineId, updateData, authorId);
+        const magazine = await magazineService.updateMagazine(mockMagazineId, updateData, mockUserId);
 
-      expect(result).toEqual(updatedMagazine);
-      expect(prismaMock.magazine.findUnique).toHaveBeenCalledWith({ where: { id: magazineId } });
-      expect(prismaMock.magazine.update).toHaveBeenCalledWith({ where: { id: magazineId }, data: updateData });
-  });
+        expect(magazine).toEqual(updatedMagazine);
+        expect(mockMagazineDb.findUnique).toHaveBeenCalledWith({ where: { id: mockMagazineId } });
+        expect(mockMagazineDb.update).toHaveBeenCalledWith({ where: { id: mockMagazineId }, data: updateData });
+       });
 
-   it('should not update a magazine if author does not match', async () => {
-      const magazineId = 'mag1';
-      const authorId = 'author1';
-      const wrongAuthorId = 'author2';
-      const updateData = { title: 'Updated Title' };
-      const existingMagazine = {
-          id: magazineId, title: 'Old Title', description: 'Old Desc', authorId: authorId,
-          createdAt: new Date(), updatedAt: new Date(), posts: [], goods: []
-      };
+        it('Magazine が存在しない場合エラーをスローする', async () => {
+            mockMagazineDb.findUnique.mockResolvedValue(null);
+            await expect(magazineService.updateMagazine('non-existent', updateData, mockUserId))
+                .rejects.toThrow(new Error('Forbidden: You are not authorized to update this magazine'));
+            expect(mockMagazineDb.update).not.toHaveBeenCalled();
+        });
 
-      prismaMock.magazine.findUnique.mockResolvedValue(existingMagazine);
+       it('ユーザーが作者でない場合エラーをスローする', async () => {
+           const otherAuthorMagazine = { ...mockMagazineData, authorId: 'other-user' };
+           mockMagazineDb.findUnique.mockResolvedValue(otherAuthorMagazine);
+           await expect(magazineService.updateMagazine(mockMagazineId, updateData, mockUserId))
+               .rejects.toThrow(new Error('Forbidden: You are not authorized to update this magazine'));
+           expect(mockMagazineDb.findUnique).toHaveBeenCalledWith({ where: { id: mockMagazineId } });
+           expect(mockMagazineDb.update).not.toHaveBeenCalled();
+       });
+   });
 
-      const result = await magazineService.updateMagazine(magazineId, updateData, wrongAuthorId);
+    describe('deleteMagazine', () => {
+        it('正常に Magazine を削除できる (作者確認)', async () => {
+            mockMagazineDb.findUnique.mockResolvedValue(mockMagazineData);
+            mockMagazineDb.delete.mockResolvedValue(mockMagazineData);
 
-      expect(result).toBeNull();
-      expect(prismaMock.magazine.findUnique).toHaveBeenCalledWith({ where: { id: magazineId } });
-      expect(prismaMock.magazine.update).not.toHaveBeenCalled();
-  });
+            const result = await magazineService.deleteMagazine(mockMagazineId, mockUserId);
 
-   it('should delete a magazine if author matches', async () => {
-      const magazineId = 'mag1';
-      const authorId = 'author1';
-      const existingMagazine = {
-          id: magazineId, title: 'Old Title', description: 'Old Desc', authorId: authorId,
-          createdAt: new Date(), updatedAt: new Date(), posts: [], goods: []
-      };
+            expect(result).toBe(true);
+            expect(mockMagazineDb.findUnique).toHaveBeenCalledWith({ where: { id: mockMagazineId } });
+            expect(mockMagazineDb.delete).toHaveBeenCalledWith({ where: { id: mockMagazineId } });
+        });
 
-      prismaMock.magazine.findUnique.mockResolvedValue(existingMagazine);
-      prismaMock.magazine.delete.mockResolvedValue(existingMagazine); // delete は削除されたオブジェクトを返す
+        it('Magazine が存在しない場合 false を返す', async () => {
+            mockMagazineDb.findUnique.mockResolvedValue(null);
+            const result = await magazineService.deleteMagazine('non-existent', mockUserId);
+            expect(result).toBe(false);
+            expect(mockMagazineDb.delete).not.toHaveBeenCalled();
+        });
 
-      const result = await magazineService.deleteMagazine(magazineId, authorId);
+        it('ユーザーが作者でない場合 false を返す', async () => {
+            const otherAuthorMagazine = { ...mockMagazineData, authorId: 'other-user' };
+            mockMagazineDb.findUnique.mockResolvedValue(otherAuthorMagazine);
+            const result = await magazineService.deleteMagazine(mockMagazineId, mockUserId);
+            expect(result).toBe(false);
+            expect(mockMagazineDb.findUnique).toHaveBeenCalledWith({ where: { id: mockMagazineId } });
+            expect(mockMagazineDb.delete).not.toHaveBeenCalled();
+        });
+    });
 
-      expect(result).toBe(true);
-      expect(prismaMock.magazine.findUnique).toHaveBeenCalledWith({ where: { id: magazineId } });
-      expect(prismaMock.magazine.delete).toHaveBeenCalledWith({ where: { id: magazineId } });
-  });
-
-   it('should not delete a magazine if author does not match', async () => {
-      const magazineId = 'mag1';
-      const authorId = 'author1';
-      const wrongAuthorId = 'author2';
-       const existingMagazine = {
-          id: magazineId, title: 'Old Title', description: 'Old Desc', authorId: authorId,
-          createdAt: new Date(), updatedAt: new Date(), posts: [], goods: []
-      };
-
-      prismaMock.magazine.findUnique.mockResolvedValue(existingMagazine);
-
-      const result = await magazineService.deleteMagazine(magazineId, wrongAuthorId);
-
-      expect(result).toBe(false);
-      expect(prismaMock.magazine.findUnique).toHaveBeenCalledWith({ where: { id: magazineId } });
-      expect(prismaMock.magazine.delete).not.toHaveBeenCalled();
-  });
-
-  it('should get magazines by author', async () => {
-      const authorId = 'author1';
-      const expectedMagazines = [
-          { id: 'mag1', title: 'M1', description: '', authorId, createdAt: new Date(), updatedAt: new Date(), posts: [], goods: [] },
-          { id: 'mag2', title: 'M2', description: '', authorId, createdAt: new Date(), updatedAt: new Date(), posts: [], goods: [] },
-      ];
-      prismaMock.magazine.findMany.mockResolvedValue(expectedMagazines);
-
-      const result = await magazineService.getMagazinesByAuthor(authorId);
-
-      expect(result).toEqual(expectedMagazines);
-      expect(prismaMock.magazine.findMany).toHaveBeenCalledWith({ where: { authorId } });
-  });
-
-  // 他のメソッド (update, delete, getByAuthor など) のテストケースも追加
+    describe('getMagazinesByAuthor', () => {
+        it('正常に Author の Magazine 一覧を取得できる', async () => {
+            const mockMagazines = [mockMagazineData, { ...mockMagazineData, id: 'mag-789' }];
+            mockMagazineDb.findMany.mockResolvedValue(mockMagazines);
+            const magazines = await magazineService.getMagazinesByAuthor(mockUserId);
+            expect(magazines).toEqual(mockMagazines);
+            expect(mockMagazineDb.findMany).toHaveBeenCalledWith({ where: { authorId: mockUserId } });
+        });
+    });
 }); 

@@ -1,19 +1,9 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "target": "ES2016",
-    "module": "CommonJS",
     "outDir": "./dist",
     "rootDir": "./src",
-    "baseUrl": "./src",
-    "paths": {
-      "@shared/*": ["../../../shared/*"],
-      "@prisma/client": ["./generated/prisma"]
-    },
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "baseUrl": "."
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/*.spec.ts"]

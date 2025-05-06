@@ -18,8 +18,13 @@ describe('Feed API Endpoints', () => {
       'post-api-1': { id: 'post-api-1', title: 'API Test Post 1', authorId: 'author-api-test' }
   };
 
+  let errorSpy: jest.SpyInstance;
+  let warnSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     // axios のモック実装 (成功ケース)
     mockAxios.get.mockImplementation(async (url: string, config?: any) => {
         if (url.includes('/rankings')) return { data: mockRankingData };
@@ -31,6 +36,11 @@ describe('Feed API Endpoints', () => {
         }
         throw new Error(`Unexpected axios GET request to ${url}`);
     });
+  });
+
+  afterEach(() => {
+    errorSpy.mockRestore();
+    warnSpy.mockRestore();
   });
 
   describe('POST /feeds/user', () => {

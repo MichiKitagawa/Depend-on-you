@@ -1,4 +1,5 @@
-import { PrismaClient, Post } from '@generated/prisma';
+// import { PrismaClient, Post } from '@generated/prisma';
+import { PrismaClient, Post } from '@prisma/client';
 
 // DTO は後で作成
 // import { CreatePostDto, UpdatePostDto } from '../dtos/post.dto';

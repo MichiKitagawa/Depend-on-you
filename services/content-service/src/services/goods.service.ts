@@ -1,4 +1,5 @@
-import { PrismaClient, Goods } from '@generated/prisma';
+// import { PrismaClient, Goods } from '@generated/prisma';
+import { PrismaClient, Goods } from '@prisma/client';
 
 // DTO は後で作成
 // import { CreateGoodsDto, UpdateGoodsDto } from '../dtos/goods.dto';

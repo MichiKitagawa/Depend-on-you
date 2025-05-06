@@ -1,71 +1,168 @@
-import { PrismaClient } from '@generated/prisma';
-import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
+import { PrismaClient, Prisma, Post, Magazine } from '@prisma/client';
 import { PostService } from '@src/services/post.service';
+
+// Manual mocks
+const mockPostDb = {
+  findUnique: jest.fn(),
+  findMany: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+};
+const mockMagazineDb = {
+  findUnique: jest.fn(),
+};
+const mockPrismaClient = {
+  post: mockPostDb,
+  magazine: mockMagazineDb,
+};
+
+jest.mock('@prisma/client', () => ({
+  PrismaClient: jest.fn(() => mockPrismaClient),
+  Prisma: jest.requireActual('@prisma/client').Prisma,
+}));
 
 describe('PostService', () => {
   let postService: PostService;
-  let prismaMock: DeepMockProxy<PrismaClient>;
+
+  const mockPostId = 'post-123';
+  const mockMagazineId = 'mag-456';
+  const mockUserId = 'user-789';
+  const mockPostData: Post = {
+    id: mockPostId,
+    title: 'Test Post',
+    content: 'Test content',
+    published: false,
+    publishedAt: null,
+    magazineId: mockMagazineId,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+  const mockMagazineData = { id: mockMagazineId, authorId: mockUserId };
 
   beforeEach(() => {
-    prismaMock = mockDeep<PrismaClient>();
-    postService = new PostService(prismaMock);
+    jest.clearAllMocks();
+    postService = new PostService(mockPrismaClient as unknown as PrismaClient);
+    Object.values(mockPostDb).forEach(mockFn => mockFn.mockReset());
+    Object.values(mockMagazineDb).forEach(mockFn => mockFn.mockReset());
+    mockMagazineDb.findUnique.mockResolvedValue(mockMagazineData as any);
   });
 
-  it('should create a post if author owns the magazine', async () => {
-    const postData = { magazineId: 'mag1', title: 'Test Post', content: 'Content', published: true };
-    const authorId = 'author1';
-    const magazine = { id: 'mag1', authorId: authorId, title: 'M', description:'', createdAt: new Date(), updatedAt: new Date(), posts:[], goods:[] };
-    const expectedPost = {
-      id: 'post1',
-      publishedAt: expect.any(Date),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      ...postData,
-    };
+  describe('createPost', () => {
+    const input = { title: 'New Post', content: 'New Content', magazineId: mockMagazineId };
+    const createDataPrisma = { title: input.title, content: input.content, published: false, publishedAt: null, magazine: { connect: { id: input.magazineId } } };
 
-    prismaMock.magazine.findUnique.mockResolvedValue(magazine);
-    prismaMock.post.create.mockResolvedValue(expectedPost);
+    it('正常に Post を作成できる', async () => {
+      const createdPost = { ...mockPostData, id: 'new-post-id', title: input.title, content: input.content };
+      mockPostDb.create.mockResolvedValue(createdPost);
+      mockMagazineDb.findUnique.mockResolvedValue(mockMagazineData as any);
 
-    const result = await postService.createPost(postData, authorId);
+      const post = await postService.createPost(input, mockUserId);
 
-    expect(result).toEqual(expectedPost);
-    expect(prismaMock.magazine.findUnique).toHaveBeenCalledWith({ where: { id: postData.magazineId } });
-    expect(prismaMock.post.create).toHaveBeenCalledWith({
-      data: {
-        ...postData,
-        publishedAt: expect.any(Date),
-      },
+      expect(post).toEqual(createdPost);
+      expect(mockMagazineDb.findUnique).toHaveBeenCalledWith({ where: { id: input.magazineId } });
+      expect(mockPostDb.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+          title: input.title,
+          content: input.content,
+          magazineId: input.magazineId,
+          published: false,
+          publishedAt: null
+      }) });
+    });
+
+    it('ユーザーが Magazine の作者でない場合 null を返す', async () => {
+        mockMagazineDb.findUnique.mockResolvedValue({ authorId: 'other-user' } as any);
+        const result = await postService.createPost(input, mockUserId);
+        expect(result).toBeNull();
+        expect(mockPostDb.create).not.toHaveBeenCalled();
     });
   });
 
-   it('should not create a post if author does not own the magazine', async () => {
-    const postData = { magazineId: 'mag1', title: 'Test Post', content: 'Content' };
-    const authorId = 'author1';
-    const wrongAuthorId = 'author2';
-    const magazine = { id: 'mag1', authorId: authorId, title: 'M', description:'', createdAt: new Date(), updatedAt: new Date(), posts:[], goods:[] };
-
-    prismaMock.magazine.findUnique.mockResolvedValue(magazine);
-
-    const result = await postService.createPost(postData, wrongAuthorId);
-
-    expect(result).toBeNull();
-    expect(prismaMock.magazine.findUnique).toHaveBeenCalledWith({ where: { id: postData.magazineId } });
-    expect(prismaMock.post.create).not.toHaveBeenCalled();
+  describe('getPostById', () => {
+    it('正常に Post を取得できる', async () => {
+        mockPostDb.findUnique.mockResolvedValue(mockPostData);
+        const post = await postService.getPostById(mockPostId);
+        expect(post).toEqual(mockPostData);
+        expect(mockPostDb.findUnique).toHaveBeenCalledWith({ where: { id: mockPostId } });
+    });
+    it('存在しない PostID の場合 null を返す', async () => {
+        mockPostDb.findUnique.mockResolvedValue(null);
+        const post = await postService.getPostById('non-existent');
+        expect(post).toBeNull();
+    });
   });
 
-  it('should get posts by magazine id', async () => {
-      const magazineId = 'mag1';
-      const expectedPosts = [
-          { id: 'post1', magazineId, title: 'P1', content: '', published: true, publishedAt: new Date(), createdAt: new Date(), updatedAt: new Date() },
-          { id: 'post2', magazineId, title: 'P2', content: '', published: false, publishedAt: null, createdAt: new Date(), updatedAt: new Date() },
-      ];
-      prismaMock.post.findMany.mockResolvedValue(expectedPosts);
+  describe('updatePost', () => {
+    const updateData = { title: 'Updated Title', content: 'Updated Content', published: true };
 
-      const result = await postService.getPostsByMagazineId(magazineId);
+    it('正常に Post を更新できる (作者確認)', async () => {
+        const updatedPost = { ...mockPostData, ...updateData, publishedAt: expect.any(Date) };
+        mockPostDb.findUnique.mockResolvedValue({ ...mockPostData, magazine: mockMagazineData });
+        mockPostDb.update.mockResolvedValue(updatedPost);
 
-      expect(result).toEqual(expectedPosts);
-      expect(prismaMock.post.findMany).toHaveBeenCalledWith({ where: { magazineId }, orderBy: { createdAt: 'asc' } });
+        const post = await postService.updatePost(mockPostId, updateData, mockUserId);
+
+        expect(post).toEqual(updatedPost);
+        expect(mockPostDb.findUnique).toHaveBeenCalledWith({ where: { id: mockPostId }, include: { magazine: true } });
+        expect(mockPostDb.update).toHaveBeenCalledWith({ where: { id: mockPostId }, data: { ...updateData, publishedAt: expect.any(Date) } });
+    });
+
+    it('Post が存在しない場合 null を返す', async () => {
+        mockPostDb.findUnique.mockResolvedValue(null);
+        const result = await postService.updatePost('non-existent', updateData, mockUserId);
+        expect(result).toBeNull();
+        expect(mockPostDb.update).not.toHaveBeenCalled();
+    });
+
+    it('ユーザーが作者でない場合 null を返す', async () => {
+        const otherAuthorMagazine = { ...mockMagazineData, authorId: 'other-user' };
+        mockPostDb.findUnique.mockResolvedValue({ ...mockPostData, magazine: otherAuthorMagazine });
+        const result = await postService.updatePost(mockPostId, updateData, mockUserId);
+        expect(result).toBeNull();
+        expect(mockPostDb.findUnique).toHaveBeenCalledWith({ where: { id: mockPostId }, include: { magazine: true } });
+        expect(mockPostDb.update).not.toHaveBeenCalled();
+    });
   });
 
-  // getPostById, updatePost, deletePost のテストケースも同様に追加
+  describe('deletePost', () => {
+      it('正常に Post を削除できる (作者確認)', async () => {
+        mockPostDb.findUnique.mockResolvedValue({ ...mockPostData, magazine: mockMagazineData });
+        mockPostDb.delete.mockResolvedValue(mockPostData);
+
+        const result = await postService.deletePost(mockPostId, mockUserId);
+
+        expect(result).toBe(true);
+        expect(mockPostDb.findUnique).toHaveBeenCalledWith({ where: { id: mockPostId }, include: { magazine: true } });
+        expect(mockPostDb.delete).toHaveBeenCalledWith({ where: { id: mockPostId } });
+      });
+
+      it('Post が存在しない場合 false を返す', async () => {
+        mockPostDb.findUnique.mockResolvedValue(null);
+        const result = await postService.deletePost('non-existent', mockUserId);
+        expect(result).toBe(false);
+        expect(mockPostDb.delete).not.toHaveBeenCalled();
+      });
+
+      it('ユーザーが作者でない場合 false を返す', async () => {
+        const otherAuthorMagazine = { ...mockMagazineData, authorId: 'other-user' };
+        mockPostDb.findUnique.mockResolvedValue({ ...mockPostData, magazine: otherAuthorMagazine });
+        const result = await postService.deletePost(mockPostId, mockUserId);
+        expect(result).toBe(false);
+        expect(mockPostDb.findUnique).toHaveBeenCalledWith({ where: { id: mockPostId }, include: { magazine: true } });
+        expect(mockPostDb.delete).not.toHaveBeenCalled();
+      });
+  });
+
+  describe('getPostsByMagazineId', () => {
+    it('正常に Magazine の Post 一覧を取得できる', async () => {
+        const mockPosts = [mockPostData, { ...mockPostData, id: 'post-789' }];
+        mockPostDb.findMany.mockResolvedValue(mockPosts);
+        const posts = await postService.getPostsByMagazineId(mockMagazineId);
+        expect(posts).toEqual(mockPosts);
+        expect(mockPostDb.findMany).toHaveBeenCalledWith({
+            where: { magazineId: mockMagazineId },
+            orderBy: { createdAt: 'asc' }
+        });
+    });
+  });
 }); 

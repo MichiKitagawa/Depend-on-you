@@ -15,6 +15,8 @@ describe('FeedController', () => {
   let mockResponse: Partial<Response>;
   let responseJson: jest.Mock;
   let responseStatus: jest.Mock;
+  let errorSpy: jest.SpyInstance;
+  let warnSpy: jest.SpyInstance;
 
   const mockFeedResult = {
     feedId: 'feed-ctrl-test',
@@ -40,11 +42,16 @@ describe('FeedController', () => {
 
     // モックサービスを注入してコントローラーをインスタンス化
     feedController = new FeedController(mockFeedServiceInstance);
+
+    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
    afterEach(() => {
       // スパイをリストア
       generateFeedSpy.mockRestore();
+      errorSpy.mockRestore();
+      warnSpy.mockRestore();
   });
 
   describe('generateFeedForUser', () => {

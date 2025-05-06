@@ -37,6 +37,7 @@ model ActionLog {
   commentText         String? // Comment 用 (直接格納する場合)
   sharePlatform       String? // Share 用 ('x', 'facebook', etc.)
   readDurationSeconds Int? // Read 用
+  referrerUserId      String? // Share 用: リファラーユーザーID (追加)
 
   @@index([targetType, targetId])
   @@index([userId])

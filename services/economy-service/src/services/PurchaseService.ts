@@ -1,10 +1,11 @@
 import { PrismaClient, Prisma } from '@prisma/client'; // PurchaseStatus はインポートしない
 import { UserId } from '../../../../shared/schema'; // UserId のみ shared/schema からインポート
-import WalletService from './WalletService';
+import { WalletService } from './WalletService'; // クラスとしてインポート
 import Stripe from 'stripe'; // Stripe SDK のインポート
 
-const prisma = new PrismaClient();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-04-30.basil' }); // エラーに従って修正
+// グローバルなインスタンスは削除
+// const prisma = new PrismaClient();
+// const stripe = new Stripe(...);
 
 // ステータス定数を定義
 export type PurchaseStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
@@ -23,13 +24,30 @@ interface PurchaseInput {
   // 必要に応じて他の決済情報
 }
 
-interface PurchaseOutput {
+export interface PurchaseOutput {
   purchaseId: string;
   status: PurchaseStatus;
   clientSecret?: string; // Stripe PaymentIntent の client_secret (フロントエンドで使用)
 }
 
-class PurchaseService {
+// export default new PurchaseService(); を削除し、クラスをエクスポート
+export class PurchaseService {
+  private prisma: PrismaClient | Prisma.TransactionClient;
+  private stripe: Stripe;
+  private walletService: WalletService;
+
+  // コンストラクタで依存関係を受け取る
+  constructor(
+    prismaInstance?: PrismaClient | Prisma.TransactionClient,
+    stripeInstance?: Stripe,
+    walletServiceInstance?: WalletService
+  ) {
+    this.prisma = prismaInstance || new PrismaClient();
+    // Stripe キーは環境変数から取得する前提
+    this.stripe = stripeInstance || new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-04-30.basil' });
+    // WalletService も DI する
+    this.walletService = walletServiceInstance || new WalletService(this.prisma as PrismaClient); // デフォルトでは自身の prisma を渡す
+  }
 
   async createPurchaseIntent(input: PurchaseInput): Promise<PurchaseOutput> {
     if (input.amount <= 0) {
@@ -44,10 +62,10 @@ class PurchaseService {
 
     // TODO: 通貨に応じた最小・最大価格チェック (Stripeの制限など)
 
-    const wallet = await WalletService.getOrCreateWallet(input.userId);
+    const wallet = await this.walletService.getOrCreateWallet(input.userId);
 
     // 1. Prisma で Purchase レコードを PENDING ステータスで作成
-    const purchase = await prisma.purchase.create({
+    const purchase = await this.prisma.purchase.create({
       data: {
         userId: input.userId,
         walletId: wallet.id,
@@ -73,11 +91,11 @@ class PurchaseService {
         // setup_future_usage: 'off_session', // カード情報を保存する場合
         // customer: stripeCustomerId, // Stripe Customer ID があれば
       };
-      const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
+      const paymentIntent = await this.stripe.paymentIntents.create(paymentIntentParams);
 
 
       // 3. Purchase レコードに Stripe 取引 ID (PaymentIntent ID) を保存
-      await prisma.purchase.update({
+      await this.prisma.purchase.update({
         where: { id: purchase.id },
         data: { providerTxId: paymentIntent.id }
       });
@@ -92,7 +110,7 @@ class PurchaseService {
     } catch (error: any) {
       console.error('Error creating Stripe PaymentIntent:', error);
       // エラーが発生したら Purchase レコードを FAILED に更新
-      await prisma.purchase.update({
+      await this.prisma.purchase.update({
         where: { id: purchase.id },
         data: { status: PURCHASE_STATUS.FAILED },
       });
@@ -103,59 +121,64 @@ class PurchaseService {
 
   // Stripe Webhook 等で決済成功通知を受け取った際の処理
   async handlePurchaseSuccess(providerTxId: string): Promise<void> {
-    // 先に Purchase が存在するか確認
-    const purchaseCheck = await prisma.purchase.findFirst({
+    // this.prisma を使用
+    const purchaseCheck = await this.prisma.purchase.findFirst({
       where: { providerTxId, status: PURCHASE_STATUS.PENDING },
       select: { id: true }
     });
 
     if (!purchaseCheck) {
       console.warn(`Webhook: Purchase not found or not pending for providerTxId: ${providerTxId}. Idempotency check.`);
-      return; // 該当する購入が見つからない場合は早期リターン
+      return;
     }
 
     // トランザクション内で Purchase 更新とポイント付与を行う
     try {
-      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-        // 1. providerTxId と PENDING ステータスで Purchase を再度検索してロック
-        const purchase = await tx.purchase.findFirst({
-          where: { providerTxId, status: PURCHASE_STATUS.PENDING },
-          select: { id: true, userId: true, amount: true }
-        });
+      // $transaction メソッドが存在するかどうかで判断
+      if (typeof (this.prisma as any).$transaction === 'function') {
+          await (this.prisma as PrismaClient).$transaction(async (tx) => {
+            // 1. providerTxId と PENDING ステータスで Purchase を再度検索してロック
+            const purchase = await tx.purchase.findFirst({
+              where: { providerTxId, status: PURCHASE_STATUS.PENDING },
+              select: { id: true, userId: true, amount: true }
+            });
 
-        // 万が一、トランザクション開始までの間に別プロセスによって状態が変わった場合
-        if (!purchase) {
-          return; // 冪等性を考慮し、エラーにはしない
-        }
+            // 万が一、トランザクション開始までの間に別プロセスによって状態が変わった場合
+            if (!purchase) {
+              return; // 冪等性を考慮し、エラーにはしない
+            }
 
-        // 2. Purchase ステータスを COMPLETED に更新
-        await tx.purchase.update({
-          where: { id: purchase.id },
-          data: { status: PURCHASE_STATUS.COMPLETED },
-        });
+            // 2. Purchase ステータスを COMPLETED に更新
+            await tx.purchase.update({
+              where: { id: purchase.id },
+              data: { status: PURCHASE_STATUS.COMPLETED },
+            });
 
-        // 3. WalletService を使ってポイントを付与 (tx と relatedId を渡す)
-        await WalletService.creditPoints(
-            purchase.userId,
-            purchase.amount,
-            `Purchase completion: ${purchase.id}`,
-            purchase.id, // relatedId
-            tx // transaction context
-        );
+            // 3. WalletService を使ってポイントを付与 (tx と relatedId を渡す)
+            await this.walletService.creditPoints(
+                purchase.userId,
+                purchase.amount,
+                `Purchase completion: ${purchase.id}`,
+                purchase.id, // relatedId
+                tx // transaction context
+            );
 
-        console.log(`Webhook: Purchase ${purchase.id} completed successfully. Credited ${purchase.amount} points to user ${purchase.userId}.`);
-      });
+            console.log(`Webhook: Purchase ${purchase.id} completed successfully. Credited ${purchase.amount} points to user ${purchase.userId}.`);
+          });
+      } else {
+          // TransactionClient インスタンスの場合は $transaction を呼べない
+          throw new Error('handlePurchaseSuccess cannot be called within an existing transaction.');
+      }
     } catch (error) {
        console.error(`Webhook: Error handling purchase success for providerTxId: ${providerTxId}`, error);
-       // TODO: エラーハンドリング: リトライ機構、エラー通知など
-       // 失敗した場合、Purchase ステータスを FAILED に戻すか検討
+       // TODO: エラーハンドリング
     }
   }
 
   // 決済失敗時の処理
   async handlePurchaseFailure(providerTxId: string): Promise<void> {
     // ここも冪等性を考慮
-    const purchase = await prisma.purchase.findFirst({
+    const purchase = await this.prisma.purchase.findFirst({
        where: { providerTxId, status: { not: PURCHASE_STATUS.COMPLETED } }, // 既に成功しているものは更新しない
        select: { id: true, status: true }
     });
@@ -167,7 +190,7 @@ class PurchaseService {
 
     // PENDING 以外 (例: requires_action など) から失敗した場合も考慮
     if(purchase.status !== PURCHASE_STATUS.FAILED) {
-        await prisma.purchase.update({
+        await this.prisma.purchase.update({
           where: { id: purchase.id },
           data: { status: PURCHASE_STATUS.FAILED },
         });
@@ -176,7 +199,4 @@ class PurchaseService {
         console.log(`Webhook: Purchase ${purchase.id} was already marked as FAILED.`);
     }
   }
-
-}
-
-export default new PurchaseService(); 
+} 

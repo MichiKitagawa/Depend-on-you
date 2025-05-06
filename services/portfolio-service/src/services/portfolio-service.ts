@@ -42,7 +42,8 @@ export class PortfolioService {
         // 例: actionType, targetId (postId/magazineId 등), timestamp など
         // 以下は仮のマッピング
         actionType: action.type, // API のプロパティ名に合わせる
-        targetId: action.targetId,
+        contentId: action.targetId, // API レスポンスの targetId を contentId にマップ
+        targetId: action.targetId, // targetId も保持 (もし必要なら)
         timestamp: new Date(action.createdAt), // API のプロパティ名に合わせる
         // ... PortfolioEntry に必要な他のプロパティがあれば追加
       }));

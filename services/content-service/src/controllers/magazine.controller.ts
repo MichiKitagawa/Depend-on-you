@@ -53,15 +53,14 @@ export class MagazineController {
       const { magazineId } = req.params;
       const { title, description } = req.body;
       const updatedMagazine = await this.magazineService.updateMagazine(magazineId, { title, description }, authorId);
-      if (!updatedMagazine) {
-        // 404 Not Found または 403 Forbidden を返すのが適切か検討
-        res.status(404).json({ error: 'Magazine not found or not authorized to update' });
-        return;
-      }
       res.status(200).json(updatedMagazine);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating magazine:', error);
-      res.status(500).json({ error: 'Failed to update magazine' });
+      if (error.message && error.message.includes('Forbidden')) {
+        res.status(403).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Failed to update magazine' });
+      }
     }
   }
 

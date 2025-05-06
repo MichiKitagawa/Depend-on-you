@@ -1,27 +1,41 @@
 import { Router } from 'express';
 import { UserController } from '../controllers/user.controller';
 import { UserService } from '../services/user.service';
+// import authMiddleware from '../middleware/auth.middleware'; // 必要に応じて認証ミドルウェアをインポート
 
 const router = Router();
 const userService = new UserService();
 const userController = new UserController(userService);
 
-// User routes
-router.post('/register', userController.register);
-router.post('/login', userController.login);
-router.get('/profile', userController.getProfile);
-router.put('/profile', userController.updateProfile);
+// --- Auth --- 
+// spec.md: /auth/signup, /auth/login
+router.post('/auth/signup', userController.register);
+router.post('/auth/login', userController.login);
 
-// Notification Preferences routes (認証が必要)
-router.get('/notifications', /* authMiddleware, */ userController.getNotificationPreferences);
-router.patch('/notifications', /* authMiddleware, */ userController.updateNotificationPreferences); // PUT or PATCH?
+// --- User Profile & Account --- 
+// spec.md: /user/{userId}/profile (GET, PATCH)
+// spec.md: /user/{userId}/credentials (PATCH - email/password)
+// spec.md: /user/{userId} (DELETE)
+router.get('/users/:userId/profile', /* authMiddleware, */ userController.getProfile);
+router.patch('/users/:userId/profile', /* authMiddleware, */ userController.updateProfile);
+// Credentials (split into email and password updates)
+router.patch('/users/:userId/email', /* authMiddleware, */ userController.updateEmail);
+router.patch('/users/:userId/password', /* authMiddleware, */ userController.updatePassword);
+router.delete('/users/:userId', /* authMiddleware, */ userController.deleteAccount); // deleteUser -> deleteAccount
 
-// Follow routes (認証が必要)
-router.post('/users/:userId/follow', /* authMiddleware, */ userController.followUser);
-router.delete('/users/:userId/follow', /* authMiddleware, */ userController.unfollowUser);
+// --- Notification Settings --- 
+// spec.md: /user/{userId}/settings/notifications (GET, PATCH)
+router.get('/users/:userId/settings/notifications', /* authMiddleware, */ userController.getNotificationSettings); // getNotificationPreferences -> getNotificationSettings
+router.patch('/users/:userId/settings/notifications', /* authMiddleware, */ userController.updateNotificationSettings); // updateNotificationPreferences -> updateNotificationSettings
 
-// Get Following/Followers routes (認証不要 or 必要に応じて)
-router.get('/users/:userId/following', userController.getFollowing);
-router.get('/users/:userId/followers', userController.getFollowers);
+// --- Follow --- 
+// spec.md: /follow (POST, DELETE)
+router.post('/follow', /* authMiddleware, */ userController.follow); // followUser -> follow, path変更
+router.delete('/follow', /* authMiddleware, */ userController.unfollow); // unfollowUser -> unfollow, path変更
+
+// --- Get Following/Followers --- 
+// spec.md: /users/:userId/followers, /users/:userId/following (GET)
+// router.get('/users/:userId/following', userController.getFollowing); // TODO: 実装後に有効化
+// router.get('/users/:userId/followers', userController.getFollowers); // TODO: 実装後に有効化
 
 export const userRouter = router; 

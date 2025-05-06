@@ -106,19 +106,18 @@ export interface BoostRecord extends BaseActionRecord { // 追加
 
 export interface CommentRecord extends BaseActionRecord { // 追加
   actionType: 'comment';
-  targetType: 'post';
-  targetId: PostID;
-  commentId: CommentId;
-  commentText: string;
+  commentId: string; // ActionLog の ID を使う想定
+  text: string;
 }
 
-export interface ShareRecord extends BaseActionRecord { // 追加
+// シェア記録の型定義
+export interface ShareRecord extends BaseActionRecord {
   actionType: 'share';
-  targetType: 'post' | 'magazine';
-  platform: 'x' | 'facebook' | 'link' | 'other'; // 共有先
+  platform: 'x' | 'facebook' | 'link' | 'other'; // spec.md に合わせる
+  referrerId?: UserId; // オプション
 }
 
-export type ActionRecord = ReadRecord | LikeRecord | BoostRecord | CommentRecord | ShareRecord; // 更新
+export type ActionRecord = ReadRecord | LikeRecord | BoostRecord | CommentRecord | ShareRecord; // ShareRecord を追加
 
 // export interface ReactionPayload { // v1.0 - 削除 (LikeRecord に統合)
 //   emotion: 'cry' | 'wow' | 'heart' | 'smile' | 'angry';

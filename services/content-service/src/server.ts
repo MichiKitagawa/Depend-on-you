@@ -11,6 +11,15 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
+// テスト用の簡易認証ミドルウェア (x-user-id ヘッダーを req.userId に設定)
+app.use((req, res, next) => {
+  const userId = req.headers['x-user-id'];
+  if (userId) {
+    (req as any).userId = userId as string;
+  }
+  next();
+});
+
 // ルーティング
 app.use('/contents', contentRoutes);
 

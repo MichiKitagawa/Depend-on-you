@@ -1,51 +1,80 @@
 import { Router } from 'express';
 import { ReaderActionController } from '../controllers/reader-action.controller';
-import { Request, Response } from 'express';
+// import { authenticate } from '../middleware/auth'; // 認証ミドルウェアをインポート
 
 const router = Router();
-const readerActionController = new ReaderActionController();
+const controller = new ReaderActionController(); // インスタンス名を変更
 
-// === アクション登録 ===
-// POST /actions
-router.post('/actions', readerActionController.createAction);
+// --- Read Actions ---
+// POST /user/:userId/reads
+router.post(
+    '/user/:userId/reads',
+    // authenticate, // 認証ミドルウェア適用
+    controller.recordReadAction // 対応するコントローラーメソッド
+);
+// GET /user/:userId/reads
+router.get(
+    '/user/:userId/reads',
+    // authenticate,
+    controller.getReadActions // 対応するコントローラーメソッド
+);
 
-// === アクション検索 ===
+// --- Like Actions ---
+// POST /posts/:postId/like
+router.post(
+    '/posts/:postId/like',
+    // authenticate,
+    controller.recordLikeAction // 対応するコントローラーメソッド
+);
+// DELETE /posts/:postId/like
+router.delete(
+    '/posts/:postId/like',
+    // authenticate,
+    controller.deleteLikeAction // 対応するコントローラーメソッド
+);
 
-// 特定ユーザーのアクション一覧取得
-// GET /users/:userId/actions
-router.get('/users/:userId/actions', readerActionController.getActionsByUserId); // userId は req.params から取得されるようにコントローラー側も要調整かも？ 現状はクエリを期待している
+// --- Boost Actions ---
+// POST /posts/:postId/boost
+router.post(
+    '/posts/:postId/boost',
+    // authenticate,
+    controller.recordBoostAction // 対応するコントローラーメソッド
+);
+// GET /user/:userId/boosts
+router.get(
+    '/user/:userId/boosts',
+    // authenticate,
+    controller.getBoostActions // 対応するコントローラーメソッド
+);
 
-// 特定ターゲット (投稿) のアクション一覧取得
-// GET /posts/:targetId/actions
-router.get('/posts/:targetId/actions', (req: Request<{ targetId: string }>, res: Response) => {
-  // targetType を 'post' としてコントローラーに渡す
-  // req.params にプロパティを追加するのは型安全でないため、req オブジェクトの別の場所に格納するか、
-  // コントローラー側で処理する。
-  // ここでは req オブジェクトにカスタムプロパティとして追加 (要 Express.Request の型拡張 or any キャスト)
-  (req as any).targetType = 'post'; // any キャストでエラー回避 (非推奨)
-  return readerActionController.getActionsByTarget(req, res);
-});
+// --- Comment Actions ---
+// POST /posts/:postId/comments
+router.post(
+    '/posts/:postId/comments',
+    // authenticate,
+    controller.createCommentAction // 対応するコントローラーメソッド
+);
+// GET /posts/:postId/comments
+router.get(
+    '/posts/:postId/comments',
+    // コメント取得は認証不要の場合もある？ 仕様による
+    controller.getCommentActions // 対応するコントローラーメソッド
+);
 
-// TODO: 必要に応じて magazine, comment ターゲットのルートも追加
-// router.get('/magazines/:targetId/actions', ...);
-// router.get('/comments/:targetId/actions', ...);
+// --- Share Actions ---
+// POST /shares
+router.post(
+    '/shares',
+    // authenticate,
+    controller.recordShareAction // 対応するコントローラーメソッド
+);
 
-/* // 古い汎用検索ルートはコメントアウトまたは削除
-router.get('/actions', (req, res) => {
-  const { userId, contentId } = req.query;
-  if (userId) {
-    return readerActionController.getActionsByUserId(req, res);
-  }
-  // contentId での検索は専用ルートに移行
-  // if (contentId) {
-  //   return readerActionController.getActionsByTarget(req, res); // 呼び出し方が変わった
-  // }
-  return res.status(400).json({ error: 'サポートされていないクエリパラメータです。/users/:userId/actions などを試してください。' });
-});
-*/
 
-// === 特定アクション取得 ===
-// GET /actions/:id
-router.get('/actions/:id', readerActionController.getActionById); // パラメータ名を :id に変更
+// 古いルートは削除
+// router.post('/actions', ...);
+// router.get('/users/:userId/actions', ...);
+// router.get('/posts/:targetId/actions', ...);
+// router.get('/actions/:id', ...);
+
 
 export default router; 

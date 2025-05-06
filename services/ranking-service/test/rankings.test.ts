@@ -22,12 +22,14 @@ jest.mock('../src/services/ranking-service', () => {
 // Prisma のモックは不要になる
 // jest.mock('../src/generated/prisma', ...);
 
-describe('Ranking Service Endpoints', () => {
+describe('Ranking Service API', () => {
   let app: express.Express;
   let rankingController: RankingController;
   // モックデータの定義は残しておく
   let mockScoreData: any[];
   let mockRankingData: any[];
+  let errorSpy: jest.SpyInstance;
+  let warnSpy: jest.SpyInstance;
 
   beforeEach(() => {
     // モック関数のリセット
@@ -58,6 +60,15 @@ describe('Ranking Service Endpoints', () => {
     router.post('/rankings/rebuild', rankingController.rebuildRankings);
     router.get('/rankings', rankingController.getRankings);
     app.use('/', router);
+
+    jest.clearAllMocks();
+    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    errorSpy.mockRestore();
+    warnSpy.mockRestore();
   });
 
   describe('POST /rankings/rebuild', () => {

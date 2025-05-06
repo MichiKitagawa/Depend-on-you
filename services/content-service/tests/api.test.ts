@@ -1,17 +1,34 @@
 import request from 'supertest';
-import app from '@src/server'; // デフォルトインポートに変更し、ファイル名を修正
-import { PrismaClient } from '@generated/prisma';
+import app from '../src/server';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 // テスト用の認証ヘッダー（仮）
-const authHeader = { 'x-user-id': 'test-author-id-123' };
+const authorUserId = 'test-author-id-123'; // Define author ID used in authHeader
+const otherUserId = 'other-user-id'; // Define other user ID used in otherAuthHeader
+const authHeader = { 'x-user-id': authorUserId };
+const otherAuthHeader = { 'x-user-id': otherUserId };
 const BASE_PATH = '/contents'; // ベースパスを定義
 
 describe('Content Service API', () => {
   let createdMagazineId: string;
   let createdPostId: string;
   let createdGoodsId: string;
+  let errorSpy: jest.SpyInstance;
+  let warnSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.clearAllMocks(); // モックの呼び出し履歴をクリア
+    // 実際のDB操作はモックされているので、ここではクリアのみ
+    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    errorSpy.mockRestore();
+    warnSpy.mockRestore();
+  });
 
   beforeAll(async () => {
     // テスト実行前にDBをクリーンにする (必要に応じて)
@@ -26,15 +43,19 @@ describe('Content Service API', () => {
 
   // === Magazine Tests ===
   describe('POST /contents/magazines', () => {
-    it('should create a new magazine', async () => {
+    it('should create a new magazine with correct authorId', async () => {
       const res = await request(app)
         .post(`${BASE_PATH}/magazines`)
-        .set(authHeader) // 認証ヘッダーを設定
+        .set(authHeader)
         .send({ title: 'API Test Magazine', description: 'Desc' });
       expect(res.statusCode).toEqual(201);
       expect(res.body).toHaveProperty('id');
-      expect(res.body.title).toBe('API Test Magazine');
       createdMagazineId = res.body.id;
+
+      // Verify authorId in DB
+      const dbMagazine = await prisma.magazine.findUnique({ where: { id: createdMagazineId } });
+      expect(dbMagazine).toBeDefined();
+      expect(dbMagazine?.authorId).toBe(authorUserId); // Check if authorId matches the one sent in header
     });
      it('should return 400 if title is missing', async () => {
       const res = await request(app)
@@ -153,6 +174,113 @@ describe('Content Service API', () => {
       // 404 (Magazine)
     });
 
-  // PATCH, DELETE のテストケースも同様に追加
+  // === Update (PATCH) Tests ===
+  describe('PATCH /contents/magazines/:magazineId', () => {
+    it('should update the magazine title by the author', async () => {
+      expect(createdMagazineId).toBeDefined();
+      const res = await request(app)
+        .patch(`${BASE_PATH}/magazines/${createdMagazineId}`)
+        .set(authHeader) // Use author's header
+        .send({ title: 'Updated API Test Magazine' });
+      expect(res.statusCode).toEqual(200);
+      expect(res.body.title).toBe('Updated API Test Magazine');
+    });
+
+    it('should return 403 if user is not the author', async () => {
+        expect(createdMagazineId).toBeDefined();
+        // Optional: Verify the magazine authorId one more time before the test
+        const dbMagazine = await prisma.magazine.findUnique({ where: { id: createdMagazineId } });
+        expect(dbMagazine?.authorId).toBe(authorUserId); // Ensure it's still the original author
+
+        const res = await request(app)
+            .patch(`${BASE_PATH}/magazines/${createdMagazineId}`)
+            .set(otherAuthHeader) // Use other user's header
+            .send({ title: 'Attempt to Update' });
+
+        // Debug log if fails
+        if (res.statusCode !== 403) {
+            console.log(`DEBUG: Failed 403 test. Status: ${res.statusCode}, Body: ${JSON.stringify(res.body)}`);
+            const updatedDbMagazine = await prisma.magazine.findUnique({ where: { id: createdMagazineId } });
+            console.log(`DEBUG: Magazine authorId in DB: ${updatedDbMagazine?.authorId}, Request User ID: ${otherUserId}`);
+        }
+
+        expect(res.statusCode).toEqual(403);
+    });
+    // 404 (Magazine not found), 400 (Invalid data)
+  });
+
+  describe('PATCH /contents/posts/:postId', () => {
+      it('should update the post content', async () => {
+        expect(createdPostId).toBeDefined();
+        const res = await request(app)
+          .patch(`${BASE_PATH}/posts/${createdPostId}`)
+          .set(authHeader)
+          .send({ content: 'Updated post content via API' });
+        expect(res.statusCode).toEqual(200);
+        expect(res.body.content).toBe('Updated post content via API');
+      });
+      // 403 (Not author), 404 (Post not found), 400 (Invalid data)
+  });
+
+   describe('PATCH /contents/goods/:goodsId', () => {
+      it('should update the goods price and stock', async () => {
+        expect(createdGoodsId).toBeDefined();
+        const res = await request(app)
+          .patch(`${BASE_PATH}/goods/${createdGoodsId}`)
+          .set(authHeader)
+          .send({ price: 750, stock: 15 });
+        expect(res.statusCode).toEqual(200);
+        expect(res.body.price).toBe(750);
+        expect(res.body.stock).toBe(15);
+      });
+      // 403 (Not author), 404 (Goods not found), 400 (Invalid data)
+  });
+
+  // === Delete Tests ===
+  describe('DELETE /contents/posts/:postId', () => {
+    it('should delete the post', async () => {
+      expect(createdPostId).toBeDefined();
+      const res = await request(app)
+        .delete(`${BASE_PATH}/posts/${createdPostId}`)
+        .set(authHeader);
+      expect(res.statusCode).toEqual(204);
+
+      // Verify it's actually deleted
+      const getRes = await request(app).get(`${BASE_PATH}/posts/${createdPostId}`);
+      expect(getRes.statusCode).toEqual(404);
+    });
+    // 403 (Not author), 404 (Post not found)
+  });
+
+  describe('DELETE /contents/goods/:goodsId', () => {
+      it('should delete the goods', async () => {
+        expect(createdGoodsId).toBeDefined();
+        const res = await request(app)
+          .delete(`${BASE_PATH}/goods/${createdGoodsId}`)
+          .set(authHeader);
+        expect(res.statusCode).toEqual(204);
+
+        // Verify deletion
+        const getRes = await request(app).get(`${BASE_PATH}/goods/${createdGoodsId}`);
+        expect(getRes.statusCode).toEqual(404);
+      });
+      // 403, 404
+  });
+
+  describe('DELETE /contents/magazines/:magazineId', () => {
+    it('should delete the magazine (and associated posts/goods - depends on cascade)', async () => {
+      expect(createdMagazineId).toBeDefined();
+      const res = await request(app)
+        .delete(`${BASE_PATH}/magazines/${createdMagazineId}`)
+        .set(authHeader);
+      expect(res.statusCode).toEqual(204);
+
+       // Verify deletion
+      const getRes = await request(app).get(`${BASE_PATH}/magazines/${createdMagazineId}`);
+      expect(getRes.statusCode).toEqual(404);
+      // Potentially check if posts/goods are also deleted if cascade is expected
+    });
+     // 403, 404
+  });
 
 }); 

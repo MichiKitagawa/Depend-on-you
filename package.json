@@ -4,7 +4,7 @@
   "description": "A content platform where readers and creators collaborate",
   "main": "dist/index.js",
   "scripts": {
-    "test": "jest",
+    "test": "cross-env NODE_OPTIONS=--max-old-space-size=4096 jest --runInBand",
     "integration-test": "docker-compose up -d postgres redis && jest --testMatch='**/*.integration.test.ts'",
     "dev": "vite",
     "build": "tsc",
@@ -41,6 +41,7 @@
     "@types/supertest": "^6.0.2",
     "@vitejs/plugin-react": "^4.4.1",
     "babel-jest": "^29.7.0",
+    "cross-env": "^7.0.3",
     "jest": "^29.7.0",
     "jest-watch-typeahead": "^2.2.2",
     "supertest": "^6.3.4",

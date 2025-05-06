@@ -5,10 +5,15 @@ import { GoodsController } from '@src/controllers/goods.controller';
 
 // 仮の認証ミドルウェア (実際には JWT 検証などを行う)
 const authenticate = (req: any, res: any, next: any) => {
-  // ヘッダーなどからユーザー情報を取得する想定
-  // req.userId = req.headers['x-user-id'] || 'dummy-user-id';
-  // ここでは仮のIDを設定
-  req.userId = 'test-author-id-123';
+  // server.ts で設定された userId を利用する
+  if (!req.userId) {
+    // server.ts のミドルウェアで userId が設定されていない場合はエラー
+    // (テストなど、意図的に認証ヘッダーを送らない場合を除くべきか要検討)
+    return res.status(401).json({ message: 'Unauthorized: Missing user ID' });
+  }
+  // req.userId は server.ts で設定済みなので、ここでは何もしない
+  // req.userId = req.headers['x-user-id'] || 'dummy-user-id'; // 削除
+  // req.userId = 'test-author-id-123'; // 削除
   next();
 };
 

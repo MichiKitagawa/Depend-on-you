@@ -11,10 +11,10 @@
     "baseUrl": "./",
     "paths": {
       "@src/*": ["src/*"],
-      "@generated/*": ["generated/*"],
+      //"@generated/*": ["generated/*"],
       "shared/*": ["../../shared/*"]
     }
   },
-  "include": ["src/**/*", "generated/**/*"],
-  "exclude": ["node_modules", "tests"]
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules"]
 } 

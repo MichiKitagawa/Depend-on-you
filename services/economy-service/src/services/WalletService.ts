@@ -1,7 +1,8 @@
 import { PrismaClient, Prisma } from '@prisma/client'; // PointHistoryType をインポートしない
 import { UserId } from '../../../../shared/schema'; // 元の相対パスに戻す
 
-const prisma = new PrismaClient();
+// グローバルな prisma インスタンスは削除 (または必要なら別ファイルへ)
+// const prisma = new PrismaClient();
 
 // ポイント履歴タイプを定義
 export type PointHistoryType = 'CREDIT' | 'DEBIT';
@@ -11,13 +12,21 @@ export const POINT_HISTORY_TYPE = {
 };
 
 // Prisma Transaction Client をオプションで受け入れる型
-type OptionalTransactionClient = Prisma.TransactionClient | undefined;
+type DbClient = PrismaClient | Prisma.TransactionClient;
 
-class WalletService {
+// export default new WalletService(); を削除し、クラスをエクスポート
+export class WalletService {
+  private prisma: DbClient;
+
+  // コンストラクタで PrismaClient を受け取る (DI)
+  constructor(prismaInstance?: DbClient) {
+    this.prisma = prismaInstance || new PrismaClient();
+  }
+
   // ユーザーIDに基づいてウォレットを取得または作成する
   // Note: トランザクション内で呼ぶ場合は tx を渡す
-  async getOrCreateWallet(userId: UserId, tx?: OptionalTransactionClient): Promise<{ id: string; balance: number }> {
-    const db = tx || prisma;
+  async getOrCreateWallet(userId: UserId, tx?: Prisma.TransactionClient): Promise<{ id: string; balance: number }> {
+    const db = tx || this.prisma;
     let wallet = await db.wallet.findUnique({
       where: { userId },
       select: { id: true, balance: true },
@@ -34,7 +43,7 @@ class WalletService {
 
   // ウォレット残高を取得する (getOrCreateWallet を内部で呼ぶ)
   async getWalletBalance(userId: UserId): Promise<number> {
-    const wallet = await this.getOrCreateWallet(userId); // ここはトランザクション外で良い
+    const wallet = await this.getOrCreateWallet(userId);
     return wallet.balance;
   }
 
@@ -45,31 +54,28 @@ class WalletService {
     amount: number,
     reason: string,
     relatedId?: string,
-    tx?: OptionalTransactionClient
+    tx?: Prisma.TransactionClient
   ): Promise<boolean> {
-    const executeDebit = async (db: Prisma.TransactionClient | PrismaClient) => {
+    const executeDebit = async (db: DbClient) => {
       if (amount <= 0) {
         throw new Error('Debit amount must be positive');
       }
-      // getOrCreateWallet にもトランザクションを渡す
-      const wallet = await this.getOrCreateWallet(userId, db instanceof PrismaClient ? undefined : db);
+      const wallet = await this.getOrCreateWallet(userId, db === this.prisma ? undefined : db);
       if (wallet.balance < amount) {
         console.warn(`Insufficient balance for user ${userId} to debit ${amount} points for ${reason}.`);
         return false;
       }
 
-      // 1. 残高を減らす
       await db.wallet.update({
         where: { id: wallet.id },
         data: { balance: { decrement: amount } },
       });
 
-      // 2. 履歴を記録
       await db.pointHistory.create({
         data: {
           userId,
           walletId: wallet.id,
-          amount: -amount, // 消費は負の値で記録
+          amount: -amount,
           type: POINT_HISTORY_TYPE.DEBIT,
           reason,
           relatedId,
@@ -79,13 +85,22 @@ class WalletService {
       return true;
     };
 
-    // tx が渡されていればそれを使用、なければ新しいトランザクションを開始
     if (tx) {
       return await executeDebit(tx);
     } else {
-      return await prisma.$transaction(async (newTx: Prisma.TransactionClient) => {
-        return await executeDebit(newTx);
-      });
+      // $transaction メソッドが存在するかどうかで判断
+      // (this.prisma as any) で型チェックを回避
+      if (typeof (this.prisma as any).$transaction === 'function') {
+        // ここで this.prisma は PrismaClient インスタンスとみなす
+        return await (this.prisma as PrismaClient).$transaction(async (newTx) => {
+            return await executeDebit(newTx);
+        });
+      } else {
+          // TransactionClient には $transaction がないと想定
+          // throw new Error('Cannot start a new transaction within an existing transaction context without the base PrismaClient instance.');
+          // メソッドが存在しない場合はエラーを投げる
+          throw new Error('Cannot start a new transaction without a PrismaClient instance.');
+      }
     }
   }
 
@@ -96,11 +111,8 @@ class WalletService {
      amount: number,
      reason: string,
      relatedId?: string,
-     tx?: Prisma.TransactionClient // 将来性を考えて Optional にしておくが、現状は tx 必須で呼び出す
+     tx?: Prisma.TransactionClient
     ): Promise<void> {
-
-     // tx が渡されていない場合はエラーにするか、単独トランザクションを開始するか検討
-     // ここではエラーとする（呼び出し元でトランザクション管理を強制）
      if (!tx) {
          throw new Error('creditPoints must be called within a transaction.');
      }
@@ -109,21 +121,18 @@ class WalletService {
     if (amount <= 0) {
       throw new Error('Credit amount must be positive');
     }
-    // getOrCreateWallet にもトランザクションを渡す
     const wallet = await this.getOrCreateWallet(userId, db);
 
-    // 1. 残高を増やす
     await db.wallet.update({
       where: { id: wallet.id },
       data: { balance: { increment: amount } },
     });
 
-    // 2. 履歴を記録
     await db.pointHistory.create({
       data: {
         userId,
         walletId: wallet.id,
-        amount: amount, // 付与は正の値
+        amount: amount,
         type: POINT_HISTORY_TYPE.CREDIT,
         reason,
         relatedId,
@@ -132,6 +141,4 @@ class WalletService {
     console.log(`Credited ${amount} points to user ${userId} for ${reason}. New balance: ${wallet.balance + amount}`);
    }
 
-}
-
-export default new WalletService(); 
+} 

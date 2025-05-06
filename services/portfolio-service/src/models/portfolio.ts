@@ -1,10 +1,10 @@
 import { Pool } from 'pg';
-import { UserId, ContentId, ActionType } from '../schema';
+import { UserId, ReaderActionType, PostID, MagazineID, CommentId } from '../schema';
 
 export interface PortfolioEntry {
-  actionType: ActionType;
-  contentId: ContentId;
-  timestamp: string;
+  actionType: ReaderActionType;
+  contentId: string;
+  timestamp: Date;
 }
 
 export interface Portfolio {
@@ -71,7 +71,7 @@ export class PortfolioModel {
         let newEntriesCount = 0;
         newEntries.forEach(entry => {
           const key = `${entry.contentId}-${entry.actionType}`;
-          if (!entryMap.has(key) || new Date(entryMap.get(key)!.timestamp) < new Date(entry.timestamp)) {
+          if (!entryMap.has(key) || entryMap.get(key)!.timestamp.getTime() < entry.timestamp.getTime()) {
             entryMap.set(key, entry);
             newEntriesCount++;
           }
@@ -82,7 +82,7 @@ export class PortfolioModel {
         
         // 日付順に並べ替え
         mergedEntries.sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          b.timestamp.getTime() - a.timestamp.getTime()
         );
         
         // データベースを更新

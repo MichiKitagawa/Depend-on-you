@@ -130,7 +130,8 @@ exports.Prisma.ActionLogScalarFieldEnum = {
   boostAmount: 'boostAmount',
   commentText: 'commentText',
   sharePlatform: 'sharePlatform',
-  readDurationSeconds: 'readDurationSeconds'
+  readDurationSeconds: 'readDurationSeconds',
+  referrerUserId: 'referrerUserId'
 };
 
 exports.Prisma.SortOrder = {
